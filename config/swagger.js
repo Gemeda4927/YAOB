@@ -1,4 +1,3 @@
-// config/swagger.js
 const swaggerJsDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 const packageJson = require('../package.json');
@@ -26,12 +25,12 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: 'http://localhost:3000',
+        url: 'http://localhost:3000/api/v1',
         description: 'Development Server',
       },
       {
-        url: 'http://localhost:3000/api/v1',
-        description: 'API v1 Server',
+        url: 'http://localhost:3000',
+        description: 'API Server',
       },
     ],
     components: {
@@ -44,13 +43,33 @@ const swaggerOptions = {
         },
       },
       schemas: {
-        SuccessResponse: {
+        User: {
           type: 'object',
           properties: {
-            success: { type: 'boolean', example: true },
-            data: { type: 'object' },
-            message: { type: 'string' },
-            timestamp: { type: 'string', format: 'date-time' },
+            _id: { type: 'string', example: '507f1f77bcf86cd799439011' },
+            name: { type: 'string', example: 'John Doe' },
+            email: { type: 'string', format: 'email', example: 'john@example.com' },
+            role: { type: 'string', enum: ['user', 'admin', 'super-admin'], example: 'user' },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' },
+          },
+        },
+        LoginRequest: {
+          type: 'object',
+          required: ['email', 'password'],
+          properties: {
+            email: { type: 'string', format: 'email', example: 'user@example.com' },
+            password: { type: 'string', format: 'password', example: 'password123' },
+          },
+        },
+        RegisterRequest: {
+          type: 'object',
+          required: ['name', 'email', 'password'],
+          properties: {
+            name: { type: 'string', example: 'John Doe' },
+            email: { type: 'string', format: 'email', example: 'user@example.com' },
+            password: { type: 'string', format: 'password', example: 'password123' },
+            role: { type: 'string', enum: ['user', 'admin'], example: 'user' },
           },
         },
         ErrorResponse: {
@@ -60,32 +79,66 @@ const swaggerOptions = {
             error: {
               type: 'object',
               properties: {
-                code: { type: 'string' },
-                message: { type: 'string' },
+                code: { type: 'string', example: 'VALIDATION_ERROR' },
+                message: { type: 'string', example: 'Invalid input data' },
+                details: { 
+                  type: 'array',
+                  items: { type: 'string' }
+                },
               },
             },
             timestamp: { type: 'string', format: 'date-time' },
           },
         },
-        User: {
-          type: 'object',
-          properties: {
-            _id: { type: 'string' },
-            name: { type: 'string' },
-            email: { type: 'string', format: 'email' },
-            role: { type: 'string', enum: ['user', 'admin', 'super-admin'] },
-          },
+      },
+      responses: {
+        Unauthorized: {
+          description: 'Authentication required or invalid token',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ErrorResponse'
+              }
+            }
+          }
+        },
+        Forbidden: {
+          description: 'Insufficient permissions',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ErrorResponse'
+              }
+            }
+          }
+        },
+        NotFound: {
+          description: 'Resource not found',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ErrorResponse'
+              }
+            }
+          }
         },
       },
     },
+    security: [{
+      bearerAuth: []
+    }],
     tags: [
       {
         name: 'Authentication',
         description: 'User authentication and authorization',
       },
+      {
+        name: 'Profile',
+        description: 'User profile management',
+      },
     ],
   },
-  apis: ['./routes/*.js'],
+  apis: ['./routes/*.js', './controllers/*.js'],
 };
 
 const swaggerSpec = swaggerJsDoc(swaggerOptions);
@@ -96,14 +149,23 @@ const swaggerSpec = swaggerJsDoc(swaggerOptions);
  * @param {string} path - Path for Swagger UI (default: '/api-docs')
  */
 const setupSwagger = (app, path = '/api-docs') => {
-  app.use(path, swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  app.use(path, swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+    explorer: true,
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: "API Documentation",
+    swaggerOptions: {
+      persistAuthorization: true,
+      docExpansion: 'list',
+    },
+  }));
   
   // Serve Swagger JSON
   app.get(`${path}.json`, (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
     res.json(swaggerSpec);
   });
   
-  console.log(`📚 Swagger UI available at: http://localhost:3000${path}`);
+  console.log(`📚 Swagger UI available at: http://localhost:${process.env.PORT || 3000}${path}`);
 };
 
 module.exports = { setupSwagger };

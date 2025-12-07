@@ -1,97 +1,246 @@
 const express = require('express');
-const authController = require('../controllers/auth.controller');
-const rateLimit = require('express-rate-limit');
-
 const router = express.Router();
+const authController = require('../controllers/auth.controller');
 
-// Rate limiting configurations
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
-  message: {
-    success: false,
-    error: {
-      code: 'RATE_LIMIT_EXCEEDED',
-      message: 'Too many authentication attempts. Please try again later.',
-    },
-  },
-});
+/**
+ * @swagger
+ * tags:
+ *   name: Authentication
+ *   description: User authentication and authorization
+ */
 
-const signupLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: 3,
-  message: {
-    success: false,
-    error: {
-      code: 'RATE_LIMIT_EXCEEDED',
-      message: 'Too many registration attempts. Please try again later.',
-    },
-  },
-});
+/**
+ * @swagger
+ * /auth/signup:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/RegisterRequest'
+ *     responses:
+ *       201:
+ *         description: User created successfully
+ *       400:
+ *         description: Invalid input data
+ *       409:
+ *         description: Email already exists
+ */
+router.post('/signup', authController.signup);
 
-// ==================== PUBLIC ROUTES ====================
+/**
+ * @swagger
+ * /auth/login:
+ *   post:
+ *     summary: Login user
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/LoginRequest'
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *       400:
+ *         description: Invalid input
+ *       401:
+ *         description: Invalid credentials
+ *       423:
+ *         description: Account locked
+ */
+router.post('/login', authController.login);
 
-// Signup
-router.post('/signup', signupLimiter, authController.signup);
+/**
+ * @swagger
+ * /auth/forgot-password:
+ *   post:
+ *     summary: Request password reset
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       200:
+ *         description: Reset email sent
+ *       400:
+ *         description: Invalid email
+ */
+router.post('/forgot-password', authController.forgotPassword);
 
-// Login
-router.post('/login', authLimiter, authController.login);
-
-// Forgot password
-router.post('/forgot-password', authLimiter, authController.forgotPassword);
-
-// Reset password
+/**
+ * @swagger
+ * /auth/reset-password/{resetToken}:
+ *   patch:
+ *     summary: Reset password with token
+ *     tags: [Authentication]
+ *     parameters:
+ *       - in: path
+ *         name: resetToken
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Password reset token
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - password
+ *             properties:
+ *               password:
+ *                 type: string
+ *                 format: password
+ *     responses:
+ *       200:
+ *         description: Password reset successful
+ *       400:
+ *         description: Invalid token or password
+ */
 router.patch('/reset-password/:resetToken', authController.resetPassword);
 
-// ==================== PROTECTED ROUTES ====================
+// Protected routes (require authentication)
 router.use(authController.protect);
 
-// Get current user
-router.get('/me', (req, res) => {
-  res.status(200).json({
-    success: true,
-    data: { user: req.user },
-    message: 'User retrieved successfully',
-    timestamp: new Date().toISOString(),
-  });
-});
+/**
+ * @swagger
+ * /auth/me:
+ *   get:
+ *     summary: Get current user profile
+ *     tags: [Profile]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Profile retrieved
+ *       401:
+ *         description: Not authenticated
+ */
+router.get('/me', authController.getMe);
 
-// Update profile (simplified)
-router.patch('/update-profile', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Profile update endpoint',
-    data: { user: req.user }
-  });
-});
+/**
+ * @swagger
+ * /auth/update-profile:
+ *   patch:
+ *     summary: Update user profile
+ *     tags: [Profile]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Profile updated
+ *       400:
+ *         description: Invalid input
+ *       401:
+ *         description: Not authenticated
+ */
+router.patch('/update-profile', authController.updateProfile);
 
-// Change password (simplified)
-router.patch('/change-password', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Password change endpoint',
-  });
-});
+/**
+ * @swagger
+ * /auth/change-password:
+ *   patch:
+ *     summary: Change password
+ *     tags: [Profile]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - currentPassword
+ *               - newPassword
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *                 format: password
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *     responses:
+ *       200:
+ *         description: Password changed
+ *       400:
+ *         description: Invalid input
+ *       401:
+ *         description: Not authenticated or wrong password
+ */
+router.patch('/change-password', authController.changePassword);
 
-// Logout
-router.post('/logout', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Logged out successfully',
-  });
-});
+/**
+ * @swagger
+ * /auth/logout:
+ *   post:
+ *     summary: Logout user (client-side)
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logged out successfully
+ */
+router.post('/logout', authController.logout);
 
-// Admin dashboard
-router.get('/admin/dashboard', authController.restrictTo('admin', 'super-admin'), (req, res) => {
-  res.status(200).json({
-    success: true,
-    data: {
-      message: 'Admin route accessed',
-      user: req.user,
-    },
-    message: 'Admin dashboard data retrieved',
-    timestamp: new Date().toISOString(),
-  });
+// Admin routes
+router.use(authController.restrictTo('admin', 'super-admin'));
+
+/**
+ * @swagger
+ * /auth/admin/users:
+ *   get:
+ *     summary: Get all users (Admin only)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of users
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Not authorized
+ */
+router.get('/admin/users', async (req, res) => {
+  try {
+    const users = await require('../models/user.model').find();
+    res.status(200).json({
+      success: true,
+      count: users.length,
+      data: users
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Server error'
+    });
+  }
 });
 
 module.exports = router;

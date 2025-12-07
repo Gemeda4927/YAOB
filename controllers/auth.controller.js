@@ -2,13 +2,12 @@ const User = require('../models/user.model');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const validator = require('validator');
-const sendEmail = require('../utils/email');
 
 // Utility function to send response
 const sendResponse = (res, statusCode, data = null, message = '', meta = null) => {
   const response = {
     success: statusCode >= 200 && statusCode < 300,
-    message,
+    message: message || (statusCode >= 200 && statusCode < 300 ? 'Success' : 'Error'),
     timestamp: new Date().toISOString(),
     requestId: crypto.randomBytes(8).toString('hex'),
   };
@@ -21,13 +20,13 @@ const sendResponse = (res, statusCode, data = null, message = '', meta = null) =
     response.meta = meta;
   }
 
-  res.status(statusCode).json(response);
+  return res.status(statusCode).json(response);
 };
 
-// Error handling utility
+// Error handling utility for controllers
 const handleError = (res, error, customMessage = 'An error occurred') => {
-  console.error(`[${new Date().toISOString()}] Error:`, error);
-
+  console.error(`[${new Date().toISOString()}] Controller Error: ${customMessage}`, error);
+  
   const errorResponse = {
     success: false,
     error: {
@@ -40,7 +39,7 @@ const handleError = (res, error, customMessage = 'An error occurred') => {
     requestId: crypto.randomBytes(8).toString('hex'),
   };
 
-  res.status(error.statusCode || 500).json(errorResponse);
+  return res.status(error.statusCode || 500).json(errorResponse);
 };
 
 // ==================== AUTHENTICATION CONTROLLERS ====================
@@ -54,9 +53,19 @@ exports.signup = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
 
+    // Validate required fields
+    if (!name || !email || !password) {
+      return sendResponse(res, 400, null, 'Name, email, and password are required');
+    }
+
     // Validate email
     if (!validator.isEmail(email)) {
       return sendResponse(res, 400, null, 'Please provide a valid email address');
+    }
+
+    // Validate password length (consistent with model)
+    if (password.length < 8) {
+      return sendResponse(res, 400, null, 'Password must be at least 8 characters');
     }
 
     // Check if user exists
@@ -67,8 +76,8 @@ exports.signup = async (req, res) => {
 
     // Create user
     const user = await User.create({
-      name,
-      email,
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
       password,
       role: role || 'user',
     });
@@ -76,20 +85,24 @@ exports.signup = async (req, res) => {
     // Generate token
     const token = jwt.sign(
       { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      process.env.JWT_SECRET || 'development-secret-key',
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
 
     // Remove sensitive data from response
     const userResponse = user.toObject();
     delete userResponse.password;
+    delete userResponse.loginAttempts;
+    delete userResponse.lockUntil;
+    delete userResponse.passwordResetToken;
+    delete userResponse.passwordResetExpires;
 
-    sendResponse(res, 201, {
+    return sendResponse(res, 201, {
       user: userResponse,
       token,
       expiresIn: 604800,
       tokenType: 'Bearer',
-    }, 'Registration successful.');
+    }, 'Registration successful');
   } catch (error) {
     handleError(res, error, 'Failed to create user account');
   }
@@ -97,8 +110,6 @@ exports.signup = async (req, res) => {
 
 /**
  * @desc    Login user
- * @route   POST /api/v1/auth/login
- * @access  Public
  */
 exports.login = async (req, res) => {
   try {
@@ -109,8 +120,13 @@ exports.login = async (req, res) => {
       return sendResponse(res, 400, null, 'Please provide email and password');
     }
 
+    // Validate email format
+    if (!validator.isEmail(email)) {
+      return sendResponse(res, 400, null, 'Please provide a valid email address');
+    }
+
     // Find user and include password
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ email: email.toLowerCase().trim() }).select('+password');
     
     // Check if user exists
     if (!user) {
@@ -135,7 +151,8 @@ exports.login = async (req, res) => {
         user.lockUntil = Date.now() + 15 * 60 * 1000; // 15 minutes
       }
       
-      await user.save({ validateBeforeSave: false });
+      // Save without triggering pre-save hooks
+      await user.save({ validateBeforeSave: false, isNew: false });
       return sendResponse(res, 401, null, 'Invalid email or password');
     }
 
@@ -148,28 +165,34 @@ exports.login = async (req, res) => {
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
 
-    await user.save();
+    // Save user WITHOUT triggering password hashing
+    await user.save({ 
+      validateBeforeSave: false,
+      isNew: false, // Important: This tells Mongoose it's an update, not new document
+    });
 
     // Remove sensitive data
     const userResponse = user.toObject();
     delete userResponse.password;
     delete userResponse.loginAttempts;
     delete userResponse.lockUntil;
+    delete userResponse.passwordResetToken;
+    delete userResponse.passwordResetExpires;
 
-    sendResponse(res, 200, {
+    return sendResponse(res, 200, {
       user: userResponse,
       token,
       expiresIn: 7 * 24 * 60 * 60,
       tokenType: 'Bearer',
     }, 'Login successful');
   } catch (error) {
+    console.error('Login error details:', error);
     handleError(res, error, 'Login failed');
   }
 };
-
 /**
  * @desc    Protect middleware - Verify JWT
  * @access  Private
@@ -179,7 +202,7 @@ exports.protect = async (req, res, next) => {
     let token;
     
     // Get token from header
-    if (req.headers.authorization?.startsWith('Bearer')) {
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
       token = req.headers.authorization.split(' ')[1];
     }
 
@@ -188,7 +211,7 @@ exports.protect = async (req, res, next) => {
     }
 
     // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'development-secret-key');
 
     // Check if user still exists
     const user = await User.findById(decoded.id);
@@ -197,17 +220,27 @@ exports.protect = async (req, res, next) => {
       return sendResponse(res, 401, null, 'The user belonging to this token no longer exists.');
     }
 
+    // Check if user is active
+    if (!user.isActive || user.isDeleted) {
+      return sendResponse(res, 401, null, 'Your account has been deactivated.');
+    }
+
     // Grant access to protected route
     req.user = user;
     next();
   } catch (error) {
+    console.error('Auth middleware error:', error);
+    
     if (error.name === 'JsonWebTokenError') {
       return sendResponse(res, 401, null, 'Invalid token. Please log in again.');
     }
+    
     if (error.name === 'TokenExpiredError') {
       return sendResponse(res, 401, null, 'Your token has expired. Please log in again.');
     }
-    handleError(res, error, 'Authentication failed');
+    
+    // For unexpected errors in middleware
+    return sendResponse(res, 500, null, 'Authentication failed due to server error');
   }
 };
 
@@ -237,9 +270,14 @@ exports.restrictTo = (...roles) => {
  */
 exports.getMe = async (req, res) => {
   try {
-    const user = req.user;
+    const user = req.user.toObject();
+    delete user.password;
+    delete user.loginAttempts;
+    delete user.lockUntil;
+    delete user.passwordResetToken;
+    delete user.passwordResetExpires;
     
-    sendResponse(res, 200, { user }, 'Profile retrieved successfully');
+    return sendResponse(res, 200, { user }, 'Profile retrieved successfully');
   } catch (error) {
     handleError(res, error, 'Failed to get profile');
   }
@@ -258,21 +296,37 @@ exports.forgotPassword = async (req, res) => {
       return sendResponse(res, 400, null, 'Email is required');
     }
 
-    const user = await User.findOne({ email });
+    // Validate email
+    if (!validator.isEmail(email)) {
+      return sendResponse(res, 400, null, 'Please provide a valid email address');
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
     
     if (!user) {
+      // For security, don't reveal if email exists
       return sendResponse(res, 200, null, 'If your email is registered, you will receive a password reset link');
+    }
+
+    // Check if account is active
+    if (!user.isActive || user.isDeleted) {
+      return sendResponse(res, 400, null, 'Account is deactivated');
     }
 
     // Generate reset token
     const resetToken = user.createPasswordResetToken();
     await user.save({ validateBeforeSave: false });
 
-    sendResponse(res, 200, {
-      resetToken,
-      expiresIn: 600,
-    }, 'Password reset email sent');
+    // In production, you would send an email here
+    // await sendEmail.passwordReset(user, resetToken);
+
+    return sendResponse(res, 200, {
+      message: 'Password reset email sent',
+      resetToken: process.env.NODE_ENV === 'development' ? resetToken : undefined,
+      expiresIn: 600, // 10 minutes
+    }, 'If your email is registered, you will receive a password reset link');
   } catch (error) {
+    console.error('Forgot password error:', error);
     handleError(res, error, 'Failed to process password reset request');
   }
 };
@@ -291,6 +345,11 @@ exports.resetPassword = async (req, res) => {
       return sendResponse(res, 400, null, 'Password is required');
     }
 
+    // Validate password length (consistent with model)
+    if (password.length < 8) {
+      return sendResponse(res, 400, null, 'Password must be at least 8 characters');
+    }
+
     // Hash token to compare with stored token
     const hashedToken = crypto
       .createHash('sha256')
@@ -306,16 +365,23 @@ exports.resetPassword = async (req, res) => {
       return sendResponse(res, 400, null, 'Token is invalid or has expired');
     }
 
+    // Check if account is active
+    if (!user.isActive || user.isDeleted) {
+      return sendResponse(res, 400, null, 'Account is deactivated');
+    }
+
     // Update password
     user.password = password;
     user.passwordResetToken = undefined;
     user.passwordResetExpires = undefined;
+    user.loginAttempts = 0;
+    user.lockUntil = undefined;
     
     // Generate new token for immediate login
     const token = jwt.sign(
       { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      process.env.JWT_SECRET || 'development-secret-key',
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
     
     await user.save();
@@ -323,14 +389,116 @@ exports.resetPassword = async (req, res) => {
     // Remove sensitive data
     const userResponse = user.toObject();
     delete userResponse.password;
+    delete userResponse.loginAttempts;
+    delete userResponse.lockUntil;
+    delete userResponse.passwordResetToken;
+    delete userResponse.passwordResetExpires;
 
-    sendResponse(res, 200, {
+    return sendResponse(res, 200, {
       user: userResponse,
       token,
+      expiresIn: 7 * 24 * 60 * 60,
+      tokenType: 'Bearer',
     }, 'Password has been reset successfully');
   } catch (error) {
+    console.error('Reset password error:', error);
     handleError(res, error, 'Failed to reset password');
   }
 };
 
-module.exports = exports;
+/**
+ * @desc    Update user profile
+ * @route   PATCH /api/v1/auth/update-profile
+ * @access  Private
+ */
+exports.updateProfile = async (req, res) => {
+  try {
+    const { name } = req.body;
+    
+    if (!name || name.trim().length < 2) {
+      return sendResponse(res, 400, null, 'Name must be at least 2 characters');
+    }
+    
+    // Update user
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { name: name.trim() },
+      { new: true, runValidators: true }
+    );
+
+    const userResponse = user.toObject();
+    delete userResponse.password;
+    delete userResponse.loginAttempts;
+    delete userResponse.lockUntil;
+    delete userResponse.passwordResetToken;
+    delete userResponse.passwordResetExpires;
+
+    return sendResponse(res, 200, { user: userResponse }, 'Profile updated successfully');
+  } catch (error) {
+    handleError(res, error, 'Failed to update profile');
+  }
+};
+
+/**
+ * @desc    Change password
+ * @route   PATCH /api/v1/auth/change-password
+ * @access  Private
+ */
+exports.changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return sendResponse(res, 400, null, 'Please provide current and new password');
+    }
+
+    // Validate new password length
+    if (newPassword.length < 8) {
+      return sendResponse(res, 400, null, 'New password must be at least 8 characters');
+    }
+
+    // Get user with password
+    const user = await User.findById(req.user._id).select('+password');
+
+    // Check current password
+    const isPasswordValid = await user.matchPassword(currentPassword);
+    
+    if (!isPasswordValid) {
+      return sendResponse(res, 401, null, 'Current password is incorrect');
+    }
+
+    // Update password
+    user.password = newPassword;
+    user.loginAttempts = 0;
+    user.lockUntil = undefined;
+    await user.save();
+
+    // Generate new token
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET || 'development-secret-key',
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+    );
+
+    return sendResponse(res, 200, { 
+      token,
+      expiresIn: 7 * 24 * 60 * 60,
+      tokenType: 'Bearer',
+    }, 'Password changed successfully');
+  } catch (error) {
+    handleError(res, error, 'Failed to change password');
+  }
+};
+
+/**
+ * @desc    Logout user (client-side - just returns success)
+ * @route   POST /api/v1/auth/logout
+ * @access  Private
+ */
+exports.logout = async (req, res) => {
+  try {
+    return sendResponse(res, 200, null, 'Logged out successfully');
+  } catch (error) {
+    handleError(res, error, 'Logout failed');
+  }
+};

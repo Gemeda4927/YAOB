@@ -1,45 +1,61 @@
 const express = require('express');
 const cors = require('cors');
+const morgan = require('morgan');
 const { setupSwagger } = require('./config/swagger');
 const authRoutes = require('./routes/auth.routes');
 
 const app = express();
 
-// -------------------- MIDDLEWARE --------------------
+
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(morgan('dev'));
+
+// Log every request
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`);
+  next();
+});
 
 // -------------------- SWAGGER --------------------
-setupSwagger(app, '/docs');
+if (process.env.NODE_ENV !== 'production') {
+  setupSwagger(app, '/docs');
+}
 
 // -------------------- ROOT ROUTE --------------------
 app.get('/', (req, res) => {
   res.json({
+    success: true,
     message: 'Welcome to Express API Server',
-    version: 'v1',
-    timestamp: new Date().toISOString(),
-    status: 'running',
-    availableRoutes: [
-      '/docs',
-      '/api/v1/auth/signup',
-      '/api/v1/auth/login',
-      '/api/v1/auth/forgot-password'
-    ]
+    version: 'v1.0.0',
+    status: 'running'
   });
 });
 
-// -------------------- API VERSIONING --------------------
+// -------------------- ROUTES --------------------
 app.use('/api/v1/auth', authRoutes);
 
 // -------------------- 404 HANDLER --------------------
 app.use((req, res) => {
   res.status(404).json({
     success: false,
-    message: 'Route not found',
-    path: req.path,
-    method: req.method,
-    timestamp: new Date().toISOString(),
+    error: {
+      code: 'NOT_FOUND',
+      message: `Cannot ${req.method} ${req.url}`
+    }
+  });
+});
+
+// -------------------- GLOBAL ERROR HANDLER --------------------
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  res.status(err.statusCode || 500).json({
+    success: false,
+    error: {
+      code: err.code || 'INTERNAL_ERROR',
+      message: err.message || 'Internal Server Error'
+    }
   });
 });
 
