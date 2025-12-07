@@ -34,7 +34,7 @@ const userSchema = new mongoose.Schema(
     
     role: {
       type: String,
-      enum: ['user', 'admin', 'super-admin'],
+      enum: ['user', 'admin', 'super-admin', 'merchant'],
       default: 'user',
     },
     
@@ -66,18 +66,50 @@ const userSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    toJSON: { 
+      virtuals: true,
+      transform: function(doc, ret) {
+        delete ret.password;
+        delete ret.loginAttempts;
+        delete ret.lockUntil;
+        delete ret.passwordResetToken;
+        delete ret.passwordResetExpires;
+        return ret;
+      }
+    },
+    toObject: {
+      virtuals: true,
+      transform: function(doc, ret) {
+        delete ret.password;
+        delete ret.loginAttempts;
+        delete ret.lockUntil;
+        delete ret.passwordResetToken;
+        delete ret.passwordResetExpires;
+        return ret;
+      }
+    }
   }
 );
 
-// Pre-save middleware for password hashing
-userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
+// FIXED: Simplified pre-save middleware
+userSchema.pre('save', async function() {
+  // Trim email and name
+  if (this.isModified('email')) {
+    this.email = this.email.toLowerCase().trim();
+  }
   
-  try {
-    this.password = await bcrypt.hash(this.password, 12);
-    next();
-  } catch (error) {
-    next(error);
+  if (this.isModified('name')) {
+    this.name = this.name.trim();
+  }
+  
+  // Only hash password if it's modified (and not already hashed)
+  if (this.isModified('password') && !this.password.startsWith('$2a$') && !this.password.startsWith('$2b$')) {
+    try {
+      const salt = await bcrypt.genSalt(12);
+      this.password = await bcrypt.hash(this.password, salt);
+    } catch (error) {
+      throw error;
+    }
   }
 });
 
@@ -105,4 +137,6 @@ userSchema.virtual('isLocked').get(function() {
   return !!(this.lockUntil && this.lockUntil > Date.now());
 });
 
-module.exports = mongoose.model('User', userSchema);
+const User = mongoose.model('User', userSchema);
+
+module.exports = User;
