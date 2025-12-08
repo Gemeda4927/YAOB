@@ -3,9 +3,9 @@ const cors = require('cors');
 const morgan = require('morgan');
 const { setupSwagger } = require('./config/swagger');
 const authRoutes = require('./routes/auth.routes');
+const roleRoutes = require('./routes/role.routes'); 
 
 const app = express();
-
 
 app.use(cors());
 app.use(express.json());
@@ -35,6 +35,7 @@ app.get('/', (req, res) => {
 
 // -------------------- ROUTES --------------------
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/roles', roleRoutes); // Add this
 
 // -------------------- 404 HANDLER --------------------
 app.use((req, res) => {

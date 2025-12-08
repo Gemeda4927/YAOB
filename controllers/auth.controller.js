@@ -1,4 +1,6 @@
 const User = require('../models/user.model');
+const Role = require('../models/role.model');
+const Permission = require('../models/permission.model');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const validator = require('validator');
@@ -42,6 +44,157 @@ const handleError = (res, error, customMessage = 'An error occurred') => {
   return res.status(error.statusCode || 500).json(errorResponse);
 };
 
+// ==================== PERMISSION & ROLE MIDDLEWARE ====================
+
+/**
+ * @desc    Check if user has specific permission
+ * @param   {String} permission - Required permission
+ */
+exports.hasPermission = (permission) => {
+  return async (req, res, next) => {
+    try {
+      console.log(`🔐 Checking permission: ${permission}`);
+      
+      if (!req.user) {
+        console.log('🔐 No user found in request');
+        return sendResponse(res, 401, null, 'Authentication required');
+      }
+
+      // Get user with populated roles and permissions
+      const user = await User.findById(req.user._id)
+        .populate({
+          path: 'roles.roleId',
+          select: 'name permissions hierarchyLevel',
+          populate: {
+            path: 'permissions.permissionId',
+            select: 'name'
+          }
+        });
+
+      if (!user) {
+        return sendResponse(res, 401, null, 'User not found');
+      }
+
+      // Aggregate permissions from all roles
+      const userPermissions = new Set();
+      user.roles.forEach(role => {
+        if (role.roleId && role.roleId.permissions) {
+          role.roleId.permissions.forEach(permission => {
+            if (permission.permissionId && permission.permissionId.name) {
+              userPermissions.add(permission.permissionId.name);
+            }
+          });
+        }
+      });
+
+      const permissionsArray = Array.from(userPermissions);
+      console.log(`🔐 User permissions:`, permissionsArray);
+      console.log(`🔐 Required permission: ${permission}`);
+      
+      if (!permissionsArray.includes(permission)) {
+        console.log(`🔐 Permission denied for: ${permission}`);
+        return sendResponse(res, 403, null, `Insufficient permissions. Required: ${permission}`);
+      }
+      
+      console.log(`🔐 Permission granted for: ${permission}`);
+      next();
+    } catch (error) {
+      console.error('🔐 Permission check error:', error);
+      handleError(res, error, 'Permission check failed');
+    }
+  };
+};
+
+/**
+ * @desc    Check if user has any of the specified permissions
+ * @param   {Array} permissions - Array of required permissions
+ */
+exports.hasAnyPermission = (permissions) => {
+  return async (req, res, next) => {
+    try {
+      if (!req.user) {
+        return sendResponse(res, 401, null, 'Authentication required');
+      }
+
+      // Get user with populated roles and permissions
+      const user = await User.findById(req.user._id)
+        .populate({
+          path: 'roles.roleId',
+          select: 'name permissions hierarchyLevel',
+          populate: {
+            path: 'permissions.permissionId',
+            select: 'name'
+          }
+        });
+
+      if (!user) {
+        return sendResponse(res, 401, null, 'User not found');
+      }
+
+      // Aggregate permissions from all roles
+      const userPermissions = new Set();
+      user.roles.forEach(role => {
+        if (role.roleId && role.roleId.permissions) {
+          role.roleId.permissions.forEach(permission => {
+            if (permission.permissionId && permission.permissionId.name) {
+              userPermissions.add(permission.permissionId.name);
+            }
+          });
+        }
+      });
+
+      const permissionsArray = Array.from(userPermissions);
+      const hasPermission = permissions.some(perm => 
+        permissionsArray.includes(perm)
+      );
+      
+      if (!hasPermission) {
+        return sendResponse(res, 403, null, `Insufficient permissions. Required one of: ${permissions.join(', ')}`);
+      }
+      
+      next();
+    } catch (error) {
+      handleError(res, error, 'Permission check failed');
+    }
+  };
+};
+
+/**
+ * @desc    Restrict to certain roles
+ * @param   {...String} roles - Allowed roles
+ */
+exports.restrictTo = (...roles) => {
+  return async (req, res, next) => {
+    try {
+      if (!req.user) {
+        return sendResponse(res, 401, null, 'Authentication required');
+      }
+
+      // Get user with populated roles
+      const user = await User.findById(req.user._id)
+        .populate({
+          path: 'roles.roleId',
+          select: 'name'
+        });
+
+      if (!user) {
+        return sendResponse(res, 401, null, 'User not found');
+      }
+
+      const userRoles = user.roles.map(r => r.roleId ? r.roleId.name : r.name);
+      const hasRole = roles.some(role => userRoles.includes(role));
+      
+      if (!hasRole) {
+        return sendResponse(res, 403, null, `Access restricted to: ${roles.join(', ')}`);
+      }
+      
+      next();
+    } catch (error) {
+      handleError(res, error, 'Role check failed');
+    }
+  };
+};
+
 // ==================== AUTHENTICATION CONTROLLERS ====================
 
 /**
@@ -74,17 +227,49 @@ exports.signup = async (req, res) => {
       return sendResponse(res, 409, null, 'Email is already registered');
     }
 
-    // Create user
+    // Find default role if no role specified
+    let defaultRole;
+    if (role) {
+      defaultRole = await Role.findOne({ name: role, isActive: true });
+      if (!defaultRole) {
+        return sendResponse(res, 400, null, `Role "${role}" not found or inactive`);
+      }
+    } else {
+      defaultRole = await Role.findOne({ isDefault: true, isActive: true });
+      if (!defaultRole) {
+        return sendResponse(res, 500, null, 'No default role configured in system');
+      }
+    }
+
+    // Get role permissions
+    const roleWithPermissions = await Role.findById(defaultRole._id)
+      .populate({
+        path: 'permissions.permissionId',
+        select: 'name'
+      });
+
+    const permissionNames = roleWithPermissions.permissions.map(p => p.permissionId.name);
+
+    // Create user with role
     const user = await User.create({
       name: name.trim(),
       email: email.toLowerCase().trim(),
       password,
-      role: role || 'user',
+      roles: [{
+        roleId: defaultRole._id,
+        name: defaultRole.name,
+        permissions: permissionNames
+      }],
+      permissions: permissionNames
     });
 
-    // Generate token
+    // Generate token with roles and permissions
     const token = jwt.sign(
-      { id: user._id, role: user.role },
+      { 
+        id: user._id, 
+        roles: [defaultRole.name],
+        permissions: permissionNames
+      },
       process.env.JWT_SECRET || 'development-secret-key',
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
@@ -160,22 +345,50 @@ exports.login = async (req, res) => {
     user.loginAttempts = 0;
     user.lockUntil = undefined;
     user.lastLoginAt = Date.now();
-    
-    // Generate token
+
+    // Get user with populated roles and permissions
+    const userWithPermissions = await User.findById(user._id)
+      .populate({
+        path: 'roles.roleId',
+        select: 'name permissions',
+        populate: {
+          path: 'permissions.permissionId',
+          select: 'name'
+        }
+      });
+
+    // Aggregate permissions from all roles
+    const userPermissions = new Set();
+    userWithPermissions.roles.forEach(role => {
+      if (role.roleId && role.roleId.permissions) {
+        role.roleId.permissions.forEach(permission => {
+          if (permission.permissionId && permission.permissionId.name) {
+            userPermissions.add(permission.permissionId.name);
+          }
+        });
+      }
+    });
+
+    const permissionsArray = Array.from(userPermissions);
+    const userRoles = userWithPermissions.roles.map(r => r.roleId ? r.roleId.name : r.name);
+
+    // Update user with aggregated permissions
+    user.permissions = permissionsArray;
+    await user.save({ validateBeforeSave: false, isNew: false });
+
+    // Generate token with roles and permissions
     const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
+      { 
+        id: user._id, 
+        roles: userRoles,
+        permissions: permissionsArray
+      },
+      process.env.JWT_SECRET || 'development-secret-key',
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
 
-    // Save user WITHOUT triggering password hashing
-    await user.save({ 
-      validateBeforeSave: false,
-      isNew: false, // Important: This tells Mongoose it's an update, not new document
-    });
-
     // Remove sensitive data
-    const userResponse = user.toObject();
+    const userResponse = userWithPermissions.toObject();
     delete userResponse.password;
     delete userResponse.loginAttempts;
     delete userResponse.lockUntil;
@@ -183,8 +396,15 @@ exports.login = async (req, res) => {
     delete userResponse.passwordResetExpires;
 
     return sendResponse(res, 200, {
-      user: userResponse,
+      message: 'Login successful',
       token,
+      user: {
+        id: userResponse._id,
+        name: userResponse.name,
+        email: userResponse.email,
+        roles: userRoles,
+        permissions: permissionsArray
+      },
       expiresIn: 7 * 24 * 60 * 60,
       tokenType: 'Bearer',
     }, 'Login successful');
@@ -193,6 +413,7 @@ exports.login = async (req, res) => {
     handleError(res, error, 'Login failed');
   }
 };
+
 /**
  * @desc    Protect middleware - Verify JWT
  * @access  Private
@@ -225,8 +446,11 @@ exports.protect = async (req, res, next) => {
       return sendResponse(res, 401, null, 'Your account has been deactivated.');
     }
 
-    // Grant access to protected route
+    // Add user info to request
     req.user = user;
+    req.userRoles = decoded.roles || [];
+    req.userPermissions = decoded.permissions || [];
+    
     next();
   } catch (error) {
     console.error('Auth middleware error:', error);
@@ -245,39 +469,50 @@ exports.protect = async (req, res, next) => {
 };
 
 /**
- * @desc    Restrict to certain roles
- * @param   {...String} roles - Allowed roles
- * @access  Private
- */
-exports.restrictTo = (...roles) => {
-  return (req, res, next) => {
-    if (!req.user) {
-      return sendResponse(res, 401, null, 'Authentication required');
-    }
-
-    if (!roles.includes(req.user.role)) {
-      return sendResponse(res, 403, null, 'You do not have permission to perform this action');
-    }
-
-    next();
-  };
-};
-
-/**
  * @desc    Get current user profile
  * @route   GET /api/v1/auth/me
  * @access  Private
  */
 exports.getMe = async (req, res) => {
   try {
-    const user = req.user.toObject();
-    delete user.password;
-    delete user.loginAttempts;
-    delete user.lockUntil;
-    delete user.passwordResetToken;
-    delete user.passwordResetExpires;
+    // Get user with populated roles and permissions
+    const userWithPermissions = await User.findById(req.user._id)
+      .populate({
+        path: 'roles.roleId',
+        select: 'name permissions',
+        populate: {
+          path: 'permissions.permissionId',
+          select: 'name'
+        }
+      });
+
+    // Aggregate permissions from all roles
+    const userPermissions = new Set();
+    userWithPermissions.roles.forEach(role => {
+      if (role.roleId && role.roleId.permissions) {
+        role.roleId.permissions.forEach(permission => {
+          if (permission.permissionId && permission.permissionId.name) {
+            userPermissions.add(permission.permissionId.name);
+          }
+        });
+      }
+    });
+
+    const permissionsArray = Array.from(userPermissions);
+    const userRoles = userWithPermissions.roles.map(r => r.roleId ? r.roleId.name : r.name);
+
+    const userResponse = userWithPermissions.toObject();
+    delete userResponse.password;
+    delete userResponse.loginAttempts;
+    delete userResponse.lockUntil;
+    delete userResponse.passwordResetToken;
+    delete userResponse.passwordResetExpires;
+
+    // Add roles and permissions to response
+    userResponse.roles = userRoles;
+    userResponse.permissions = permissionsArray;
     
-    return sendResponse(res, 200, { user }, 'Profile retrieved successfully');
+    return sendResponse(res, 200, { user: userResponse }, 'Profile retrieved successfully');
   } catch (error) {
     handleError(res, error, 'Failed to get profile');
   }
@@ -316,9 +551,6 @@ exports.forgotPassword = async (req, res) => {
     // Generate reset token
     const resetToken = user.createPasswordResetToken();
     await user.save({ validateBeforeSave: false });
-
-    // In production, you would send an email here
-    // await sendEmail.passwordReset(user, resetToken);
 
     return sendResponse(res, 200, {
       message: 'Password reset email sent',
@@ -370,6 +602,32 @@ exports.resetPassword = async (req, res) => {
       return sendResponse(res, 400, null, 'Account is deactivated');
     }
 
+    // Get user with populated roles and permissions
+    const userWithPermissions = await User.findById(user._id)
+      .populate({
+        path: 'roles.roleId',
+        select: 'name permissions',
+        populate: {
+          path: 'permissions.permissionId',
+          select: 'name'
+        }
+      });
+
+    // Aggregate permissions from all roles
+    const userPermissions = new Set();
+    userWithPermissions.roles.forEach(role => {
+      if (role.roleId && role.roleId.permissions) {
+        role.roleId.permissions.forEach(permission => {
+          if (permission.permissionId && permission.permissionId.name) {
+            userPermissions.add(permission.permissionId.name);
+          }
+        });
+      }
+    });
+
+    const permissionsArray = Array.from(userPermissions);
+    const userRoles = userWithPermissions.roles.map(r => r.roleId ? r.roleId.name : r.name);
+
     // Update password
     user.password = password;
     user.passwordResetToken = undefined;
@@ -377,9 +635,13 @@ exports.resetPassword = async (req, res) => {
     user.loginAttempts = 0;
     user.lockUntil = undefined;
     
-    // Generate new token for immediate login
+    // Generate new token with roles and permissions
     const token = jwt.sign(
-      { id: user._id, role: user.role },
+      { 
+        id: user._id, 
+        roles: userRoles,
+        permissions: permissionsArray
+      },
       process.env.JWT_SECRET || 'development-secret-key',
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
@@ -387,7 +649,7 @@ exports.resetPassword = async (req, res) => {
     await user.save();
 
     // Remove sensitive data
-    const userResponse = user.toObject();
+    const userResponse = userWithPermissions.toObject();
     delete userResponse.password;
     delete userResponse.loginAttempts;
     delete userResponse.lockUntil;
@@ -426,7 +688,18 @@ exports.updateProfile = async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    const userResponse = user.toObject();
+    // Get updated user with permissions
+    const userWithPermissions = await User.findById(user._id)
+      .populate({
+        path: 'roles.roleId',
+        select: 'name permissions',
+        populate: {
+          path: 'permissions.permissionId',
+          select: 'name'
+        }
+      });
+
+    const userResponse = userWithPermissions.toObject();
     delete userResponse.password;
     delete userResponse.loginAttempts;
     delete userResponse.lockUntil;
@@ -467,15 +740,45 @@ exports.changePassword = async (req, res) => {
       return sendResponse(res, 401, null, 'Current password is incorrect');
     }
 
+    // Get user with populated roles and permissions
+    const userWithPermissions = await User.findById(user._id)
+      .populate({
+        path: 'roles.roleId',
+        select: 'name permissions',
+        populate: {
+          path: 'permissions.permissionId',
+          select: 'name'
+        }
+      });
+
+    // Aggregate permissions from all roles
+    const userPermissions = new Set();
+    userWithPermissions.roles.forEach(role => {
+      if (role.roleId && role.roleId.permissions) {
+        role.roleId.permissions.forEach(permission => {
+          if (permission.permissionId && permission.permissionId.name) {
+            userPermissions.add(permission.permissionId.name);
+          }
+        });
+      }
+    });
+
+    const permissionsArray = Array.from(userPermissions);
+    const userRoles = userWithPermissions.roles.map(r => r.roleId ? r.roleId.name : r.name);
+
     // Update password
     user.password = newPassword;
     user.loginAttempts = 0;
     user.lockUntil = undefined;
     await user.save();
 
-    // Generate new token
+    // Generate new token with roles and permissions
     const token = jwt.sign(
-      { id: user._id, role: user.role },
+      { 
+        id: user._id, 
+        roles: userRoles,
+        permissions: permissionsArray
+      },
       process.env.JWT_SECRET || 'development-secret-key',
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );

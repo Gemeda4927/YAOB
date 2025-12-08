@@ -32,11 +32,20 @@ const userSchema = new mongoose.Schema(
       select: false,
     },
     
-    role: {
-      type: String,
-      enum: ['user', 'admin', 'super-admin', 'merchant'],
-      default: 'user',
-    },
+    // Remove single role field, use roles array instead
+    roles: [
+      {
+        roleId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Role'
+        },
+        name: String, // Role name for quick access
+        permissions: [String] // Permissions from this role
+      }
+    ],
+    
+    // Aggregated permissions from all roles (for quick access)
+    permissions: [String],
     
     passwordResetToken: String,
     passwordResetExpires: Date,
@@ -74,6 +83,9 @@ const userSchema = new mongoose.Schema(
         delete ret.lockUntil;
         delete ret.passwordResetToken;
         delete ret.passwordResetExpires;
+        // Add roles and permissions to response
+        ret.roles = doc.roles.map(r => r.name);
+        ret.permissions = doc.permissions || [];
         return ret;
       }
     },
@@ -85,6 +97,9 @@ const userSchema = new mongoose.Schema(
         delete ret.lockUntil;
         delete ret.passwordResetToken;
         delete ret.passwordResetExpires;
+        // Add roles and permissions to response
+        ret.roles = doc.roles.map(r => r.name);
+        ret.permissions = doc.permissions || [];
         return ret;
       }
     }
@@ -130,6 +145,19 @@ userSchema.methods.createPasswordResetToken = function() {
   this.passwordResetExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
   
   return resetToken;
+};
+
+// Method to aggregate permissions from all roles
+userSchema.methods.getPermissions = function() {
+  const allPermissions = new Set();
+  this.roles.forEach(role => {
+    if (role.permissions && Array.isArray(role.permissions)) {
+      role.permissions.forEach(permission => {
+        allPermissions.add(permission);
+      });
+    }
+  });
+  return Array.from(allPermissions);
 };
 
 // Virtual property for isLocked
