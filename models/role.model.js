@@ -7,75 +7,63 @@ const roleSchema = new mongoose.Schema(
       required: [true, 'Role name is required'],
       unique: true,
       trim: true,
-      maxlength: [50, 'Role name cannot exceed 50 characters']
+      enum: ['user', 'admin', 'superadmin']
     },
     
     description: {
       type: String,
-      required: [true, 'Role description is required'],
       trim: true,
-      maxlength: [200, 'Description cannot exceed 200 characters']
     },
     
-    permissions: [
-      {
-        permissionId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: 'Permission',
-          required: true
-        },
-        name: {
-          type: String,
-          required: true
-        }
-      }
-    ],
-    
-    hierarchyLevel: {
-      type: Number,
-      required: true,
-      default: 1,
-      min: [1, 'Hierarchy level must be at least 1'],
-      max: [10, 'Hierarchy level cannot exceed 10']
-    },
+    permissions: [{
+      type: String,
+      enum: [
+        'view_profile', 'update_profile', 'change_password',
+        'view_users', 'create_users', 'update_users', 'delete_users',
+        'view_roles', 'create_roles', 'update_roles', 'delete_roles',
+        'view_permissions', 'assign_permissions',
+        'manage_all'
+      ]
+    }],
     
     isDefault: {
       type: Boolean,
-      default: false
+      default: false,
     },
     
     isActive: {
       type: Boolean,
-      default: true
+      default: true,
     },
     
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
+      ref: 'User',
     },
     
     updatedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
-    }
+      ref: 'User',
+    },
   },
   {
     timestamps: true,
-    toJSON: { virtuals: true },
-    toObject: { virtuals: true }
   }
 );
 
-// Virtual for permissions names array
-roleSchema.virtual('permissionNames').get(function() {
-  return this.permissions.map(p => p.name);
+// Prevent removing the last default role
+roleSchema.pre('save', async function(next) {
+  if (this.isDefault && this.isModified('isDefault')) {
+    const defaultRoles = await this.constructor.countDocuments({ 
+      isDefault: true, 
+      _id: { $ne: this._id } 
+    });
+    if (defaultRoles === 0) {
+      next(new Error('Cannot remove the last default role'));
+    }
+  }
+  next();
 });
-
-// Index for faster queries
-roleSchema.index({ name: 1 });
-roleSchema.index({ hierarchyLevel: -1 });
-roleSchema.index({ isActive: 1 });
-roleSchema.index({ isDefault: 1 });
 
 const Role = mongoose.model('Role', roleSchema);
 
