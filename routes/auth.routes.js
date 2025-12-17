@@ -44,11 +44,41 @@ router.delete('/users/:id',
   authController.deleteUser
 );
 
-// Permission management (Superadmin only)
-router.patch('/users/:id/permissions', 
-  restrictTo('superadmin'), 
+// ==================== PERMISSION MANAGEMENT ====================
+
+// Get user's current permissions (Superadmin only)
+router.get('/users/:id/permissions',
+  restrictTo('superadmin'),
+  hasPermission('assign_permissions'),
+  authController.getUserPermissions
+);
+
+// REPLACE all permissions (current behavior) - Superadmin only
+router.patch('/users/:id/permissions/assign',
+  restrictTo('superadmin'),
   hasPermission('assign_permissions'),
   authController.assignPermissions
+);
+
+// ADD specific permissions (without removing existing) - Superadmin only
+router.patch('/users/:id/permissions/add',
+  restrictTo('superadmin'),
+  hasPermission('assign_permissions'),
+  authController.addPermissions
+);
+
+// REMOVE specific permissions - Superadmin only
+router.patch('/users/:id/permissions/remove',
+  restrictTo('superadmin'),
+  hasPermission('assign_permissions'),
+  authController.removePermissions
+);
+
+// Reset to default permissions based on role - Superadmin only
+router.patch('/users/:id/permissions/reset',
+  restrictTo('superadmin'),
+  hasPermission('assign_permissions'),
+  authController.resetPermissions
 );
 
 // ==================== SUPERADMIN ROUTES ====================

@@ -1,837 +1,1429 @@
 {
   "info": {
-    "_postman_id": "auth-api-rbac-testing",
-    "name": "Auth API with RBAC Testing",
+    "name": "Auth API - Production Ready",
+    "description": "🔐 Complete Authentication & User Management API\n\n📦 Features:\n• JWT Authentication\n• Role-Based Access Control (RBAC)\n• Permission Management\n• Password Reset Flow\n• User Management\n• Admin/Superadmin Controls\n\n👥 User Types:\n• Regular User\n• Admin User\n• Superadmin User\n\n📚 Test Credentials (from seeder):\n• Superadmin: superadmin@example.com / SuperAdmin123\n• Admin: admin@example.com / Admin12345\n• Users: john@example.com, jane@example.com / User12345",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Complete authentication API with Role-Based Access Control testing"
+    "version": "1.0.0"
   },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string",
+      "description": "Base URL - Change for production"
+    },
+    {
+      "key": "apiVersion",
+      "value": "v1",
+      "type": "string"
+    },
+    {
+      "key": "userToken",
+      "value": "",
+      "type": "string",
+      "description": "Regular user JWT token"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string",
+      "description": "Admin user JWT token"
+    },
+    {
+      "key": "superadminToken",
+      "value": "",
+      "type": "string",
+      "description": "Superadmin JWT token"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "testEmail",
+      "value": "testuser_{{$timestamp}}@example.com",
+      "type": "string",
+      "description": "Dynamic test email"
+    },
+    {
+      "key": "testPassword",
+      "value": "TestPass123!",
+      "type": "string"
+    },
+    {
+      "key": "testName",
+      "value": "Test User {{$timestamp}}",
+      "type": "string"
+    },
+    {
+      "key": "resetToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "testUserId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "targetUserId",
+      "value": "",
+      "type": "string"
+    }
+  ],
   "item": [
     {
-      "name": "🏠 Server Status",
+      "name": "📋 SETUP & CONFIGURATION",
+      "description": "Initial setup and environment configuration",
       "item": [
         {
-          "name": "✅ Health Check",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/health",
-              "host": ["{{base_url}}"],
-              "path": ["health"]
+          "name": "1️⃣ Environment Setup",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Generate unique test data",
+                  "const timestamp = new Date().getTime();",
+                  "pm.variables.set('timestamp', timestamp);",
+                  "pm.variables.set('testEmail', `testuser_${timestamp}@example.com`);",
+                  "pm.variables.set('testName', `Test User ${timestamp}`);",
+                  "",
+                  "console.log('✅ Test environment configured');",
+                  "console.log(`📧 Test Email: ${pm.variables.get('testEmail')}`);",
+                  "console.log(`👤 Test Name: ${pm.variables.get('testName')}`);"
+                ],
+                "type": "text/javascript"
+              }
             },
-            "description": "Check if server and database are running"
-          },
-          "response": []
-        },
-        {
-          "name": "📋 API Info",
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Setup completed\", function() {",
+                  "    pm.expect(pm.variables.get('testEmail')).to.include('@example.com');",
+                  "    pm.expect(pm.variables.get('testName')).to.include('Test User');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/",
-              "host": ["{{base_url}}"],
+              "raw": "{{baseUrl}}/",
+              "host": ["{{baseUrl}}"],
               "path": [""]
-            },
-            "description": "Get API basic information"
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "🎯 Step 1: Login with Seeded Users",
-      "item": [
-        {
-          "name": "🔐 Login as Super Admin",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"superadmin@example.com\",\n  \"password\": \"SuperAdmin123\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/login",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "login"]
-            },
-            "description": "Login as Super Admin (has all permissions)"
-          },
-          "response": []
+            }
+          }
         },
         {
-          "name": "🔐 Login as Admin",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"Admin12345\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/login",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "login"]
-            },
-            "description": "Login as Admin (has limited admin permissions)"
-          },
-          "response": []
-        },
-        {
-          "name": "🔐 Login as Regular User",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"User12345\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/login",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "login"]
-            },
-            "description": "Login as Regular User (basic permissions only)"
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "👤 User Authentication",
-      "item": [
-        {
-          "name": "📝 Register New User (Public)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"New User\",\n  \"email\": \"newuser@example.com\",\n  \"password\": \"Password123\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/signup",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "signup"]
-            },
-            "description": "Create a new user account (default: user role)"
-          },
-          "response": []
-        },
-        {
-          "name": "📝 Register Admin (Requires Admin Token)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"New Admin\",\n  \"email\": \"newadmin@example.com\",\n  \"password\": \"AdminPassword123\",\n  \"role\": \"admin\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/signup",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "signup"]
-            },
-            "description": "Only admins can create admin users"
-          },
-          "response": []
-        },
-        {
-          "name": "❌ Register with Existing Email",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Duplicate User\",\n  \"email\": \"john@example.com\",\n  \"password\": \"Password123\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/signup",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "signup"]
-            },
-            "description": "Try to register with existing email"
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "🔐 Protected User Routes",
-      "item": [
-        {
-          "name": "👤 Get My Profile",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{auth_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/me",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "me"]
-            },
-            "description": "Get current user profile"
-          },
-          "response": []
-        },
-        {
-          "name": "✏️ Update Profile",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{auth_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Updated Name\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/update-profile",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "update-profile"]
-            },
-            "description": "Update user profile name"
-          },
-          "response": []
-        },
-        {
-          "name": "🔑 Change Password",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{auth_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"currentPassword\": \"User12345\",\n  \"newPassword\": \"NewPassword456\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/change-password",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "change-password"]
-            },
-            "description": "Change user password"
-          },
-          "response": []
-        },
-        {
-          "name": "🚪 Logout",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{auth_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/logout",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "logout"]
-            },
-            "description": "Logout user"
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "👑 Admin Routes (Admin/Superadmin Only)",
-      "item": [
-        {
-          "name": "📋 Get All Users (Admin)",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/users",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "users"]
-            },
-            "description": "Get all users (requires admin role)"
-          },
-          "response": []
-        },
-        {
-          "name": "👤 Get User by ID (Admin)",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/users/{{user_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "users", "{{user_id}}"]
-            },
-            "description": "Get specific user by ID"
-          },
-          "response": []
-        },
-        {
-          "name": "✏️ Update User (Admin)",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Admin Updated Name\",\n  \"isActive\": true\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/users/{{user_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "users", "{{user_id}}"]
-            },
-            "description": "Admin updates user details"
-          },
-          "response": []
-        },
-        {
-          "name": "❌ Try Update User as Regular User",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{user_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Should Not Work\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/users/{{user_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "users", "{{user_id}}"]
-            },
-            "description": "Regular user tries to update another user (should fail)"
-          },
-          "response": []
-        },
-        {
-          "name": "🗑️ Delete User (Admin)",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/users/{{user_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "users", "{{user_id}}"]
-            },
-            "description": "Admin deletes a user (soft delete)"
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "👑 Superadmin Exclusive Routes",
-      "item": [
-        {
-          "name": "📊 Superadmin Stats",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{superadmin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/superadmin/stats",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "superadmin", "stats"]
-            },
-            "description": "Get system statistics (superadmin only)"
-          },
-          "response": []
-        },
-        {
-          "name": "🔧 Assign Permissions (Superadmin)",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{superadmin_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"permissions\": [\n    \"view_users\",\n    \"create_users\",\n    \"update_users\"\n  ]\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/users/{{user_id}}/permissions",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "users", "{{user_id}}", "permissions"]
-            },
-            "description": "Superadmin assigns permissions to users"
-          },
-          "response": []
-        },
-        {
-          "name": "❌ Admin Tries to Assign Permissions",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"permissions\": [\"view_users\"]\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/users/{{user_id}}/permissions",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "users", "{{user_id}}", "permissions"]
-            },
-            "description": "Admin tries to assign permissions (should fail - superadmin only)"
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "🔓 Password Reset",
-      "item": [
-        {
-          "name": "📧 Forgot Password",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"john@example.com\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/forgot-password",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "forgot-password"]
-            },
-            "description": "Request password reset email"
-          },
-          "response": []
-        },
-        {
-          "name": "🔄 Reset Password",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"password\": \"NewPassword789\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/reset-password/{{reset_token}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "reset-password", "{{reset_token}}"]
-            },
-            "description": "Reset password using token"
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "⚠️ Error & Permission Testing",
-      "item": [
-        {
-          "name": "❌ User Tries to Access Admin Route",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{user_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/users",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "users"]
-            },
-            "description": "Regular user tries to access admin route (should fail)"
-          },
-          "response": []
-        },
-        {
-          "name": "❌ Admin Tries to Update Superadmin",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Should Not Work\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/users/{{superadmin_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "users", "{{superadmin_id}}"]
-            },
-            "description": "Admin tries to update superadmin user (should fail)"
-          },
-          "response": []
-        },
-        {
-          "name": "❌ Access Without Token",
+          "name": "2️⃣ Health Check",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/v1/auth/users",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "users"]
-            },
-            "description": "Access protected route without token"
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
           },
-          "response": []
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Status code test",
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "// Response body tests",
+                  "pm.test(\"Response has correct structure\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('status', 'UP');",
+                  "    pm.expect(jsonData).to.have.property('timestamp');",
+                  "    pm.expect(jsonData).to.have.property('uptime');",
+                  "    pm.expect(jsonData).to.have.property('environment');",
+                  "});",
+                  "",
+                  "// Performance test",
+                  "pm.test(\"Response time is less than 500ms\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(500);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
         },
         {
-          "name": "❌ Invalid Token",
+          "name": "3️⃣ API Documentation",
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer invalid.token.here"
-              }
-            ],
+            "header": [],
             "url": {
-              "raw": "{{base_url}}/api/v1/auth/me",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "me"]
-            },
-            "description": "Access with invalid JWT token"
+              "raw": "{{baseUrl}}/api/{{apiVersion}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "{{apiVersion}}"]
+            }
           },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "🔧 Role & Permission Testing",
-      "item": [
-        {
-          "name": "Test Different Role Access",
-          "item": [
+          "response": [],
+          "event": [
             {
-              "name": "User Role - View Own Profile Only",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "type": "text/javascript",
-                    "exec": [
-                      "// This tests user role permissions",
-                      "pm.test(\"User can view own profile\", function() {\n  pm.expect(pm.response.code).to.equal(200);\n});",
-                      "pm.test(\"Response contains user info\", function() {\n  var jsonData = pm.response.json();\n  pm.expect(jsonData.data.user).to.have.property('role', 'user');\n});"
-                    ]
-                  }
-                }
-              ],
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{user_token}}"
-                  }
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"API endpoints documented\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData).to.have.property('endpoints');",
+                  "    pm.expect(jsonData.endpoints).to.have.property('auth');",
+                  "    console.log('Available endpoints:', JSON.stringify(jsonData.endpoints, null, 2));",
+                  "});"
                 ],
-                "url": {
-                  "raw": "{{base_url}}/api/v1/auth/me",
-                  "host": ["{{base_url}}"],
-                  "path": ["api", "v1", "auth", "me"]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Admin Role - Can View All Users",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "type": "text/javascript",
-                    "exec": [
-                      "pm.test(\"Admin can view all users\", function() {\n  pm.expect(pm.response.code).to.equal(200);\n});",
-                      "pm.test(\"Response contains users array\", function() {\n  var jsonData = pm.response.json();\n  pm.expect(jsonData.data.users).to.be.an('array');\n});"
-                    ]
-                  }
-                }
-              ],
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{admin_token}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{base_url}}/api/v1/auth/users",
-                  "host": ["{{base_url}}"],
-                  "path": ["api", "v1", "auth", "users"]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Superadmin - Full Access",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "type": "text/javascript",
-                    "exec": [
-                      "pm.test(\"Superadmin has full access\", function() {\n  pm.expect(pm.response.code).to.equal(200);\n});"
-                    ]
-                  }
-                }
-              ],
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{superadmin_token}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{base_url}}/api/v1/auth/superadmin/stats",
-                  "host": ["{{base_url}}"],
-                  "path": ["api", "v1", "auth", "superadmin", "stats"]
-                }
-              },
-              "response": []
+                "type": "text/javascript"
+              }
             }
           ]
         }
       ]
     },
     {
-      "name": "📋 Test User IDs (Save from Responses)",
+      "name": "👤 PUBLIC AUTHENTICATION",
+      "description": "Public endpoints - No authentication required",
       "item": [
         {
-          "name": "Get User IDs for Testing",
+          "name": "1️⃣ User Registration (Signup)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Generate unique email for each test run",
+                  "const timestamp = new Date().getTime();",
+                  "const testEmail = `newuser_${timestamp}@example.com`;",
+                  "pm.variables.set('uniqueTestEmail', testEmail);",
+                  "console.log(`Using email: ${testEmail}`);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{testName}}\",\n  \"email\": \"{{uniqueTestEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/signup",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "{{apiVersion}}", "auth", "signup"]
+            },
+            "description": "Register a new user account"
+          },
+          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
-                "type": "text/javascript",
                 "exec": [
-                  "// Save user IDs for testing\nif (pm.response.code === 200) {\n  var jsonData = pm.response.json();\n  \n  if (jsonData.data && jsonData.data.users && jsonData.data.users.length > 0) {\n    // Find superadmin\n    var superadmin = jsonData.data.users.find(u => u.role === 'superadmin');\n    if (superadmin) {\n      pm.collectionVariables.set('superadmin_id', superadmin._id);\n      console.log('✅ Superadmin ID saved: ' + superadmin._id);\n    }\n    \n    // Find regular user (not current user)\n    var regularUser = jsonData.data.users.find(u => u.role === 'user' && u.email !== 'john@example.com');\n    if (regularUser) {\n      pm.collectionVariables.set('user_id', regularUser._id);\n      console.log('✅ User ID saved: ' + regularUser._id);\n    }\n  }\n}"
-                ]
+                  "// Store the user ID and token for later use",
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.variables.set('userId', response.data.user._id);",
+                  "    pm.variables.set('userToken', response.data.token);",
+                  "    pm.variables.set('targetUserId', response.data.user._id);",
+                  "    pm.collectionVariables.set('userToken', response.data.token);",
+                  "    console.log('✅ User registered:', response.data.user.email);",
+                  "    console.log('🔑 Token stored:', response.data.token.substring(0, 50) + '...');",
+                  "    console.log('🎯 Target User ID:', response.data.user._id);",
+                  "}",
+                  "",
+                  "// Validation tests",
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has correct structure\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.data).to.have.property('user');",
+                  "    pm.expect(jsonData.data).to.have.property('token');",
+                  "    pm.expect(jsonData.data.user).to.not.have.property('password');",
+                  "    pm.expect(jsonData.data.user.role).to.equal('user');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "2️⃣ User Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"User12345\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "{{apiVersion}}", "auth", "login"]
+            },
+            "description": "Login with seeded user credentials"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Store token for regular user",
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.variables.set('userToken', response.data.token);",
+                  "    pm.variables.set('userId', response.data.user._id);",
+                  "    pm.variables.set('targetUserId', response.data.user._id);",
+                  "    pm.collectionVariables.set('userToken', response.data.token);",
+                  "    console.log('✅ User logged in:', response.data.user.email);",
+                  "}",
+                  "",
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Login successful\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.data.user.email).to.equal('john@example.com');",
+                  "    pm.expect(jsonData.data).to.have.property('tokenType', 'Bearer');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "3️⃣ Admin Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"Admin12345\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "{{apiVersion}}", "auth", "login"]
+            },
+            "description": "Login with admin credentials"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Store admin token",
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.variables.set('adminToken', response.data.token);",
+                  "    pm.variables.set('adminId', response.data.user._id);",
+                  "    pm.collectionVariables.set('adminToken', response.data.token);",
+                  "    console.log('✅ Admin logged in:', response.data.user.email);",
+                  "    console.log('👑 Role:', response.data.user.role);",
+                  "    console.log('🔑 Permissions:', response.data.user.permissions);",
+                  "}",
+                  "",
+                  "pm.test(\"Admin login successful\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.user.role).to.equal('admin');",
+                  "    pm.expect(jsonData.data.user.permissions).to.include('view_users');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "4️⃣ Superadmin Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"superadmin@example.com\",\n  \"password\": \"SuperAdmin123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "{{apiVersion}}", "auth", "login"]
+            },
+            "description": "Login with superadmin credentials"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Store superadmin token",
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.variables.set('superadminToken', response.data.token);",
+                  "    pm.collectionVariables.set('superadminToken', response.data.token);",
+                  "    console.log('✅ Superadmin logged in:', response.data.user.email);",
+                  "    console.log('👑 Role:', response.data.user.role);",
+                  "    console.log('🔑 Permissions:', response.data.user.permissions);",
+                  "}",
+                  "",
+                  "pm.test(\"Superadmin login successful\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.user.role).to.equal('superadmin');",
+                  "    pm.expect(jsonData.data.user.permissions).to.include('manage_all');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "5️⃣ Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/forgot-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "{{apiVersion}}", "auth", "forgot-password"]
+            },
+            "description": "Request password reset"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Password reset requested\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    ",
+                  "    // In development mode, we should get the token",
+                  "    if (pm.environment.name === 'development') {",
+                  "        pm.expect(jsonData.data).to.have.property('resetToken');",
+                  "        pm.variables.set('resetToken', jsonData.data.resetToken);",
+                  "        console.log('🔐 Reset token:', jsonData.data.resetToken);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "6️⃣ Reset Password (Dev Mode)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"NewPassword123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/reset-password/{{resetToken}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "{{apiVersion}}", "auth", "reset-password", "{{resetToken}}"]
+            },
+            "description": "Reset password using token (development mode only)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🔐 PROTECTED USER ROUTES",
+      "description": "Endpoints requiring user authentication",
+      "item": [
+        {
+          "name": "1️⃣ Get My Profile",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Set authorization header",
+                  "const token = pm.variables.get('userToken');",
+                  "pm.request.headers.add({",
+                  "    key: 'Authorization',",
+                  "    value: `Bearer ${token}`",
+                  "});",
+                  "console.log('Using token:', token.substring(0, 50) + '...');"
+                ],
+                "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "{{apiVersion}}", "auth", "me"]
+            },
+            "description": "Get authenticated user's profile"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Profile retrieved successfully\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.data.user).to.not.have.property('password');",
+                  "    pm.expect(jsonData.data.user).to.have.property('email');",
+                  "    pm.expect(jsonData.data.user).to.have.property('name');",
+                  "    console.log('User profile:', jsonData.data.user.email);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "2️⃣ Update My Profile",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const token = pm.variables.get('userToken');",
+                  "pm.request.headers.add({",
+                  "    key: 'Authorization',",
+                  "    value: `Bearer ${token}`",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{superadmin_token}}"
+                "key": "Content-Type",
+                "value": "application/json"
               }
             ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/users",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "users"]
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Name {{$timestamp}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
-            "description": "Get all users and save IDs for testing"
+            "url": {
+              "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/update-profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "{{apiVersion}}", "auth", "update-profile"]
+            },
+            "description": "Update authenticated user's profile"
           },
-          "response": []
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Profile updated successfully\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.data.user.name).to.include('Updated Name');",
+                  "    console.log('Updated name:', jsonData.data.user.name);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "3️⃣ Change Password",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const token = pm.variables.get('userToken');",
+                  "pm.request.headers.add({",
+                  "    key: 'Authorization',",
+                  "    value: `Bearer ${token}`",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"User12345\",\n  \"newPassword\": \"NewPassword123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/change-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "{{apiVersion}}", "auth", "change-password"]
+            },
+            "description": "Change authenticated user's password"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Password changed successfully\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.data).to.have.property('token');",
+                  "    // Store new token",
+                  "    pm.variables.set('userToken', jsonData.data.token);",
+                  "    console.log('🔑 New token issued');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "4️⃣ Logout",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const token = pm.variables.get('userToken');",
+                  "pm.request.headers.add({",
+                  "    key: 'Authorization',",
+                  "    value: `Bearer ${token}`",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "{{apiVersion}}", "auth", "logout"]
+            },
+            "description": "Logout user (invalidate token on client side)"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Logout successful\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.message).to.equal('Logged out successfully');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "👑 ADMIN ROUTES",
+      "description": "Admin-only endpoints (admin & superadmin)",
+      "item": [
+        {
+          "name": "1️⃣ Get All Users (Admin)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const token = pm.variables.get('adminToken');",
+                  "pm.request.headers.add({",
+                  "    key: 'Authorization',",
+                  "    value: `Bearer ${token}`",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "{{apiVersion}}", "auth", "users"]
+            },
+            "description": "Get all users (admin permission required)"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Users retrieved successfully\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.data.users).to.be.an('array');",
+                  "    ",
+                  "    // Store first user ID for testing",
+                  "    if (jsonData.data.users.length > 0) {",
+                  "        const firstUser = jsonData.data.users[0];",
+                  "        if (firstUser.role === 'user') {",
+                  "            pm.variables.set('testUserId', firstUser._id);",
+                  "            pm.variables.set('targetUserId', firstUser._id);",
+                  "            console.log('📝 Test user ID stored:', firstUser._id);",
+                  "        }",
+                  "    }",
+                  "    ",
+                  "    console.log(`Total users: ${jsonData.data.users.length}`);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "2️⃣ Get User by ID",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const token = pm.variables.get('adminToken');",
+                  "pm.request.headers.add({",
+                  "    key: 'Authorization',",
+                  "    value: `Bearer ${token}`",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/users/{{targetUserId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "{{apiVersion}}", "auth", "users", "{{targetUserId}}"]
+            },
+            "description": "Get specific user details"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"User details retrieved\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.data.user._id).to.equal(pm.variables.get('targetUserId'));",
+                  "    pm.expect(jsonData.data.user).to.not.have.property('password');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "3️⃣ Update User (Admin)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const token = pm.variables.get('adminToken');",
+                  "pm.request.headers.add({",
+                  "    key: 'Authorization',",
+                  "    value: `Bearer ${token}`",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Admin Updated User\",\n  \"isActive\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/users/{{targetUserId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "{{apiVersion}}", "auth", "users", "{{targetUserId}}"]
+            },
+            "description": "Update user details (admin)"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"User updated by admin\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.data.user.name).to.equal('Admin Updated User');",
+                  "    pm.expect(jsonData.data.user.isActive).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "4️⃣ Delete User (Soft Delete)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const token = pm.variables.get('adminToken');",
+                  "pm.request.headers.add({",
+                  "    key: 'Authorization',",
+                  "    value: `Bearer ${token}`",
+                  "});",
+                  "",
+                  "// Create a test user to delete",
+                  "const timestamp = new Date().getTime();",
+                  "const deleteUserEmail = `delete_${timestamp}@example.com`;",
+                  "",
+                  "// First create a user",
+                  "pm.sendRequest({",
+                  "    url: pm.variables.get('baseUrl') + '/api/' + pm.variables.get('apiVersion') + '/auth/signup',",
+                  "    method: 'POST',",
+                  "    header: {",
+                  "        'Content-Type': 'application/json'",
+                  "    },",
+                  "    body: {",
+                  "        mode: 'raw',",
+                  "        raw: JSON.stringify({",
+                  "            name: 'User to Delete',",
+                  "            email: deleteUserEmail,",
+                  "            password: 'Test12345'",
+                  "        })",
+                  "    }",
+                  "}, function (err, res) {",
+                  "    if (!err && res.code === 201) {",
+                  "        const userId = res.json().data.user._id;",
+                  "        pm.variables.set('userToDeleteId', userId);",
+                  "        console.log('Created user for deletion:', userId);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/users/{{userToDeleteId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "{{apiVersion}}", "auth", "users", "{{userToDeleteId}}"]
+            },
+            "description": "Soft delete a user"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"User soft deleted\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.message).to.equal('User deleted successfully');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "⚡ SUPERADMIN ROUTES",
+      "description": "Superadmin exclusive endpoints",
+      "item": [
+        {
+          "name": "1️⃣ Superadmin Stats",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const token = pm.variables.get('superadminToken');",
+                  "pm.request.headers.add({",
+                  "    key: 'Authorization',",
+                  "    value: `Bearer ${token}`",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/superadmin/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "{{apiVersion}}", "auth", "superadmin", "stats"]
+            },
+            "description": "Get system statistics (superadmin only)"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Superadmin stats retrieved\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.data).to.have.property('totalUsers');",
+                  "    pm.expect(jsonData.data).to.have.property('admins');",
+                  "    pm.expect(jsonData.data).to.have.property('superadmins');",
+                  "    ",
+                  "    console.log('System Stats:', JSON.stringify(jsonData.data, null, 2));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "🔐 PERMISSION MANAGEMENT",
+          "description": "Advanced permission management endpoints",
+          "item": [
+            {
+              "name": "1️⃣ Get User Permissions",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.variables.get('superadminToken');",
+                      "pm.request.headers.add({",
+                      "    key: 'Authorization',",
+                      "    value: `Bearer ${token}`",
+                      "});",
+                      "console.log('Getting permissions for user:', pm.variables.get('targetUserId'));"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/users/{{targetUserId}}/permissions",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "{{apiVersion}}", "auth", "users", "{{targetUserId}}", "permissions"]
+                },
+                "description": "Get user's current permissions"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"User permissions retrieved\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.success).to.be.true;",
+                      "    pm.expect(jsonData.data).to.have.property('permissions');",
+                      "    pm.expect(jsonData.data).to.have.property('totalPermissions');",
+                      "    console.log('Current permissions:', jsonData.data.permissions);",
+                      "    console.log('Total permissions:', jsonData.data.totalPermissions);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "2️⃣ REPLACE All Permissions",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.variables.get('superadminToken');",
+                      "pm.request.headers.add({",
+                      "    key: 'Authorization',",
+                      "    value: `Bearer ${token}`",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"permissions\": [\n    \"view_profile\",\n    \"update_profile\",\n    \"change_password\",\n    \"view_users\",\n    \"create_users\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/users/{{targetUserId}}/permissions/assign",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "{{apiVersion}}", "auth", "users", "{{targetUserId}}", "permissions", "assign"]
+                },
+                "description": "REPLACE all permissions (overwrites existing)"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"All permissions replaced\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.success).to.be.true;",
+                      "    pm.expect(jsonData.data.user.permissions).to.include('create_users');",
+                      "    pm.expect(jsonData.data.user.permissions).to.include('view_users');",
+                      "    console.log('✅ All permissions replaced');",
+                      "    console.log('Updated permissions:', jsonData.data.user.permissions);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "3️⃣ ADD Specific Permissions",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.variables.get('superadminToken');",
+                      "pm.request.headers.add({",
+                      "    key: 'Authorization',",
+                      "    value: `Bearer ${token}`",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"permissions\": [\n    \"delete_users\",\n    \"view_roles\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/users/{{targetUserId}}/permissions/add",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "{{apiVersion}}", "auth", "users", "{{targetUserId}}", "permissions", "add"]
+                },
+                "description": "ADD permissions (keeps existing)"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Permissions added successfully\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.success).to.be.true;",
+                      "    pm.expect(jsonData.data.user.permissions).to.include('delete_users');",
+                      "    pm.expect(jsonData.data.user.permissions).to.include('view_roles');",
+                      "    console.log('✅ Permissions added');",
+                      "    console.log('Added permissions:', jsonData.data.addedPermissions);",
+                      "    console.log('Total permissions now:', jsonData.data.totalPermissions);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "4️⃣ REMOVE Specific Permissions",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.variables.get('superadminToken');",
+                      "pm.request.headers.add({",
+                      "    key: 'Authorization',",
+                      "    value: `Bearer ${token}`",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"permissions\": [\n    \"delete_users\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/users/{{targetUserId}}/permissions/remove",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "{{apiVersion}}", "auth", "users", "{{targetUserId}}", "permissions", "remove"]
+                },
+                "description": "REMOVE specific permissions"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Permissions removed successfully\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.success).to.be.true;",
+                      "    pm.expect(jsonData.data.user.permissions).to.not.include('delete_users');",
+                      "    console.log('✅ Permissions removed');",
+                      "    console.log('Removed permissions:', jsonData.data.removedPermissions);",
+                      "    console.log('Total permissions now:', jsonData.data.totalPermissions);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "5️⃣ RESET to Default Permissions",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.variables.get('superadminToken');",
+                      "pm.request.headers.add({",
+                      "    key: 'Authorization',",
+                      "    value: `Bearer ${token}`",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/users/{{targetUserId}}/permissions/reset",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "{{apiVersion}}", "auth", "users", "{{targetUserId}}", "permissions", "reset"]
+                },
+                "description": "Reset permissions to default based on user's role"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Permissions reset to default\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.success).to.be.true;",
+                      "    console.log('✅ Permissions reset');",
+                      "    console.log('Reset to:', jsonData.data.resetTo);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "6️⃣ Update User Role to Admin",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.variables.get('superadminToken');",
+                      "pm.request.headers.add({",
+                      "    key: 'Authorization',",
+                      "    value: `Bearer ${token}`",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"role\": \"admin\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/users/{{targetUserId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "{{apiVersion}}", "auth", "users", "{{targetUserId}}"]
+                },
+                "description": "Promote user to admin (superadmin only)"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"User promoted to admin\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.success).to.be.true;",
+                      "    pm.expect(jsonData.data.user.role).to.equal('admin');",
+                      "    console.log('✅ User promoted to:', jsonData.data.user.role);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            }
+          ]
         }
       ]
     }
   ],
   "event": [
     {
-      "listen": "test",
-      "script": {
-        "type": "text/javascript",
-        "exec": [
-          "// Auto-save tokens based on role",
-          "if (pm.response.code === 200) {\n  var jsonData = pm.response.json();\n  \n  if (jsonData.data && jsonData.data.token) {\n    var token = jsonData.data.token;\n    \n    // Get user role from response or decode token\n    var userRole = 'user';\n    \n    if (jsonData.data.user && jsonData.data.user.role) {\n      userRole = jsonData.data.user.role;\n    } else {\n      // Try to decode token\n      try {\n        var payload = JSON.parse(atob(token.split('.')[1]));\n        if (payload.role) userRole = payload.role;\n      } catch (e) {\n        console.log('Could not decode token');\n      }\n    }\n    \n    // Save token based on role\n    switch(userRole) {\n      case 'superadmin':\n        pm.collectionVariables.set('superadmin_token', token);\n        console.log('✅ Superadmin token saved');\n        break;\n      case 'admin':\n        pm.collectionVariables.set('admin_token', token);\n        console.log('✅ Admin token saved');\n        break;\n      default:\n        pm.collectionVariables.set('user_token', token);\n        pm.collectionVariables.set('auth_token', token); // Default\n        console.log('✅ User token saved');\n    }\n  }\n  \n  // Save reset token from forgot password\n  if (jsonData.data && jsonData.data.resetToken) {\n    pm.collectionVariables.set('reset_token', jsonData.data.resetToken);\n    console.log('✅ Reset token saved: ' + jsonData.data.resetToken);\n  }\n}",
-          "",
-          "// Basic response validation",
-          "pm.test(\"Response has success field\", function () {\n  var jsonData = pm.response.json();\n  pm.expect(jsonData).to.have.property(\"success\");\n});",
-          "",
-          "pm.test(\"Response has timestamp\", function () {\n  var jsonData = pm.response.json();\n  pm.expect(jsonData).to.have.property(\"timestamp\");\n});",
-          "",
-          "// Role-based success tests\nif (pm.response.code === 403) {\n  pm.test(\"Access denied for insufficient permissions\", function() {\n    pm.expect(pm.response.code).to.equal(403);\n  });\n}"
-        ]
-      }
-    },
-    {
       "listen": "prerequest",
       "script": {
-        "type": "text/javascript",
         "exec": [
-          "// Pre-request script to log what we're testing\nconsole.log('Testing: ' + pm.request.method + ' ' + pm.request.url);",
+          "// Global pre-request script",
+          "console.log('🔧 Global pre-request script running');",
+          "console.log(`Base URL: ${pm.variables.get('baseUrl')}`);",
+          "console.log(`Environment: ${pm.environment.name || 'No environment'}`);"
+        ],
+        "type": "text/javascript"
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "exec": [
+          "// Global test script",
+          "console.log(`✅ Request completed: ${pm.request.method} ${pm.request.url}`);",
+          "console.log(`⏱️  Response time: ${pm.response.responseTime}ms`);",
+          "console.log(`📊 Status: ${pm.response.code} ${pm.response.status}`);",
           "",
-          "// If using admin routes, ensure we have admin token\nif (pm.request.url.toString().includes('/users') && !pm.request.url.toString().includes('/me')) {\n  console.log('Admin route detected');\n}"
-        ]
+          "// Add response time to environment if needed",
+          "if (pm.response.responseTime > 1000) {",
+          "    console.warn('⚠️ Slow response detected');",
+          "}"
+        ],
+        "type": "text/javascript"
       }
     }
   ],
-  "variable": [
-    {
-      "key": "base_url",
-      "value": "http://localhost:3000",
-      "type": "string",
-      "description": "Base URL for API"
-    },
-    {
-      "key": "superadmin_token",
-      "value": "",
-      "type": "string",
-      "description": "JWT token for Super Admin"
-    },
-    {
-      "key": "admin_token",
-      "value": "",
-      "type": "string",
-      "description": "JWT token for Admin"
-    },
-    {
-      "key": "user_token",
-      "value": "",
-      "type": "string",
-      "description": "JWT token for Regular User"
-    },
-    {
-      "key": "auth_token",
-      "value": "",
-      "type": "string",
-      "description": "General auth token"
-    },
-    {
-      "key": "reset_token",
-      "value": "",
-      "type": "string",
-      "description": "Password reset token"
-    },
-    {
-      "key": "superadmin_id",
-      "value": "",
-      "type": "string",
-      "description": "Superadmin user ID"
-    },
-    {
-      "key": "user_id",
-      "value": "",
-      "type": "string",
-      "description": "Regular user ID for testing"
-    }
-  ],
-  "auth": null
+  "auth": null,
+  "protocolProfileBehavior": {}
 }
