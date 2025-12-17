@@ -49,7 +49,7 @@ const userSchema = new mongoose.Schema(
         'view_roles', 'create_roles', 'update_roles', 'delete_roles',
         'view_permissions', 'assign_permissions',
         
-        // Superadmin permissions (all)
+        // Superadmin permission
         'manage_all'
       ]
     }],
@@ -154,6 +154,9 @@ userSchema.methods.createPasswordResetToken = function() {
 userSchema.methods.hasPermission = function(permission) {
   // Superadmin has all permissions
   if (this.role === 'superadmin') return true;
+  
+  // Check if user has manage_all permission
+  if (this.permissions.includes('manage_all')) return true;
   
   // Check if permission exists in user's permissions array
   return this.permissions.includes(permission);

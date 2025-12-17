@@ -26,7 +26,7 @@ const seedDatabase = async () => {
     
     console.log('🗑️  Cleared existing data');
     
-    // Create default roles
+    // Create default roles with ALL available permissions in enum
     const roles = [
       {
         name: 'user',
@@ -37,11 +37,10 @@ const seedDatabase = async () => {
       },
       {
         name: 'admin',
-        description: 'Administrator with management permissions',
+        description: 'Administrator with LIMITED initial permissions',
         permissions: [
           'view_profile', 'update_profile', 'change_password',
-          'view_users', 'create_users', 'update_users',
-          'view_roles', 'view_permissions'
+          'view_users', 'create_users', 'update_users', 'view_roles'
         ],
         isDefault: false,
         isActive: true,
@@ -64,11 +63,11 @@ const seedDatabase = async () => {
       email: 'superadmin@example.com',
       password: 'SuperAdmin123',
       role: 'superadmin',
-      permissions: ['manage_all'],
+      permissions: ['manage_all'], // Superadmin has manage_all
       isActive: true,
     });
     
-    // Create admin user
+    // Create admin user with LIMITED initial permissions
     const admin = await User.create({
       name: 'Admin User',
       email: 'admin@example.com',
@@ -76,8 +75,7 @@ const seedDatabase = async () => {
       role: 'admin',
       permissions: [
         'view_profile', 'update_profile', 'change_password',
-        'view_users', 'create_users', 'update_users',
-        'view_roles', 'view_permissions'
+        'view_users', 'create_users', 'update_users', 'view_roles'
       ],
       isActive: true,
       createdBy: superadmin._id,
@@ -123,15 +121,20 @@ const seedDatabase = async () => {
     console.log(`  Email: ${superadmin.email}`);
     console.log(`  Password: SuperAdmin123`);
     console.log(`  Role: ${superadmin.role}`);
-    console.log('\nAdmin User:');
+    console.log(`  Permissions: ${superadmin.permissions.join(', ')}`);
+    console.log('\nAdmin User (LIMITED PERMISSIONS):');
     console.log(`  Email: ${admin.email}`);
     console.log(`  Password: Admin12345`);
     console.log(`  Role: ${admin.role}`);
+    console.log(`  Permissions: ${admin.permissions.join(', ')}`);
     console.log('\nRegular Users (Password: User12345):');
     console.log(`  john@example.com`);
     console.log(`  jane@example.com`);
     console.log(`  bob@example.com (inactive)`);
     console.log('\n🔑 Use these credentials for testing');
+    console.log('\n⚠️  IMPORTANT: Admin has LIMITED permissions initially!');
+    console.log('   Only Superadmin can assign additional permissions using:');
+    console.log('   PATCH /api/v1/auth/users/:id/permissions');
     
     process.exit(0);
   } catch (error) {

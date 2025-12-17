@@ -451,6 +451,8 @@ exports.deleteUser = async (req, res) => {
   }
 };
 
+// ==================== PERMISSION MANAGEMENT ====================
+
 exports.assignPermissions = async (req, res) => {
   try {
     const { permissions } = req.body;
@@ -469,6 +471,7 @@ exports.assignPermissions = async (req, res) => {
     const validPermissions = [
       'view_profile', 'update_profile', 'change_password',
       'view_users', 'create_users', 'update_users', 'delete_users',
+      'view_roles', 'create_roles', 'update_roles', 'delete_roles',
       'view_permissions', 'assign_permissions',
       'manage_all'
     ];
@@ -478,14 +481,194 @@ exports.assignPermissions = async (req, res) => {
       return sendResponse(res, 400, null, `Invalid permissions: ${invalidPermissions.join(', ')}`);
     }
     
+    // REPLACE all permissions (current behavior)
     user.permissions = permissions;
     await user.save();
     
     const userResponse = user.toObject();
     delete userResponse.password;
     
-    return sendResponse(res, 200, { user: userResponse }, 'Permissions assigned successfully');
+    return sendResponse(res, 200, { 
+      user: userResponse,
+      message: `All permissions replaced. User now has ${permissions.length} permission(s).`
+    }, 'Permissions assigned successfully');
   } catch (error) {
     handleError(res, error, 'Failed to assign permissions');
+  }
+};
+
+// NEW: Add specific permissions
+exports.addPermissions = async (req, res) => {
+  try {
+    const { permissions } = req.body;
+    
+    if (!permissions || !Array.isArray(permissions)) {
+      return sendResponse(res, 400, null, 'Permissions array is required');
+    }
+    
+    const user = await User.findById(req.params.id);
+    
+    if (!user) {
+      return sendResponse(res, 404, null, 'User not found');
+    }
+    
+    // Validate permissions
+    const validPermissions = [
+      'view_profile', 'update_profile', 'change_password',
+      'view_users', 'create_users', 'update_users', 'delete_users',
+      'view_roles', 'create_roles', 'update_roles', 'delete_roles',
+      'view_permissions', 'assign_permissions',
+      'manage_all'
+    ];
+    
+    const invalidPermissions = permissions.filter(p => !validPermissions.includes(p));
+    if (invalidPermissions.length > 0) {
+      return sendResponse(res, 400, null, `Invalid permissions: ${invalidPermissions.join(', ')}`);
+    }
+    
+    // Get current permissions
+    const currentPermissions = user.permissions || [];
+    
+    // Add new permissions (avoid duplicates)
+    const newPermissions = [...currentPermissions];
+    permissions.forEach(permission => {
+      if (!newPermissions.includes(permission)) {
+        newPermissions.push(permission);
+      }
+    });
+    
+    // Update user with combined permissions
+    user.permissions = newPermissions;
+    await user.save();
+    
+    const userResponse = user.toObject();
+    delete userResponse.password;
+    
+    return sendResponse(res, 200, { 
+      user: userResponse,
+      addedPermissions: permissions,
+      totalPermissions: user.permissions.length,
+      message: `Added ${permissions.length} permission(s). User now has ${user.permissions.length} permission(s).`
+    }, 'Permissions added successfully');
+  } catch (error) {
+    handleError(res, error, 'Failed to add permissions');
+  }
+};
+
+// NEW: Remove specific permissions
+exports.removePermissions = async (req, res) => {
+  try {
+    const { permissions } = req.body;
+    
+    if (!permissions || !Array.isArray(permissions)) {
+      return sendResponse(res, 400, null, 'Permissions array is required');
+    }
+    
+    const user = await User.findById(req.params.id);
+    
+    if (!user) {
+      return sendResponse(res, 404, null, 'User not found');
+    }
+    
+    // Validate permissions
+    const validPermissions = [
+      'view_profile', 'update_profile', 'change_password',
+      'view_users', 'create_users', 'update_users', 'delete_users',
+      'view_roles', 'create_roles', 'update_roles', 'delete_roles',
+      'view_permissions', 'assign_permissions',
+      'manage_all'
+    ];
+    
+    const invalidPermissions = permissions.filter(p => !validPermissions.includes(p));
+    if (invalidPermissions.length > 0) {
+      return sendResponse(res, 400, null, `Invalid permissions: ${invalidPermissions.join(', ')}`);
+    }
+    
+    // Get current permissions
+    const currentPermissions = user.permissions || [];
+    
+    // Remove specified permissions
+    const newPermissions = currentPermissions.filter(p => !permissions.includes(p));
+    
+    // Update user with filtered permissions
+    user.permissions = newPermissions;
+    await user.save();
+    
+    const userResponse = user.toObject();
+    delete userResponse.password;
+    
+    return sendResponse(res, 200, { 
+      user: userResponse,
+      removedPermissions: permissions,
+      totalPermissions: user.permissions.length,
+      message: `Removed ${permissions.length} permission(s). User now has ${user.permissions.length} permission(s).`
+    }, 'Permissions removed successfully');
+  } catch (error) {
+    handleError(res, error, 'Failed to remove permissions');
+  }
+};
+
+// NEW: Get user's current permissions
+exports.getUserPermissions = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('permissions role');
+    
+    if (!user) {
+      return sendResponse(res, 404, null, 'User not found');
+    }
+    
+    return sendResponse(res, 200, { 
+      userId: user._id,
+      role: user.role,
+      permissions: user.permissions,
+      totalPermissions: user.permissions.length
+    }, 'User permissions retrieved');
+  } catch (error) {
+    handleError(res, error, 'Failed to get user permissions');
+  }
+};
+
+// NEW: Reset to default permissions based on role
+exports.resetPermissions = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    
+    if (!user) {
+      return sendResponse(res, 404, null, 'User not found');
+    }
+    
+    let defaultPermissions = [];
+    
+    // Set default permissions based on role
+    switch (user.role) {
+      case 'user':
+        defaultPermissions = ['view_profile', 'update_profile', 'change_password'];
+        break;
+      case 'admin':
+        defaultPermissions = [
+          'view_profile', 'update_profile', 'change_password',
+          'view_users', 'create_users', 'update_users', 'view_roles'
+        ];
+        break;
+      case 'superadmin':
+        defaultPermissions = ['manage_all'];
+        break;
+      default:
+        defaultPermissions = ['view_profile', 'update_profile', 'change_password'];
+    }
+    
+    user.permissions = defaultPermissions;
+    await user.save();
+    
+    const userResponse = user.toObject();
+    delete userResponse.password;
+    
+    return sendResponse(res, 200, { 
+      user: userResponse,
+      resetTo: defaultPermissions,
+      message: `Permissions reset to default for ${user.role} role.`
+    }, 'Permissions reset successfully');
+  } catch (error) {
+    handleError(res, error, 'Failed to reset permissions');
   }
 };
