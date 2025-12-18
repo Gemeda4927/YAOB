@@ -49,6 +49,10 @@ const userSchema = new mongoose.Schema(
         'view_roles', 'create_roles', 'update_roles', 'delete_roles',
         'view_permissions', 'assign_permissions',
         
+        // Event permissions
+        'view_events', 'create_events', 'update_events', 'delete_events',
+        'manage_event_registrations', 'publish_events',
+        
         // Superadmin permission
         'manage_all'
       ]
@@ -115,29 +119,35 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-userSchema.pre('save', async function() {
+
+
+userSchema.pre('save', async function () {
+  // Trim email and name
   if (this.isModified('email')) {
     this.email = this.email.toLowerCase().trim();
   }
-  
+
   if (this.isModified('name')) {
     this.name = this.name.trim();
   }
-  
-  if (this.isModified('password') && !this.password.startsWith('$2a$') && !this.password.startsWith('$2b$')) {
-    try {
-      const salt = await bcrypt.genSalt(12);
-      this.password = await bcrypt.hash(this.password, salt);
-    } catch (error) {
-      throw error;
-    }
+
+  // Hash password if needed
+  if (
+    this.isModified('password') &&
+    !this.password.startsWith('$2a$') &&
+    !this.password.startsWith('$2b$')
+  ) {
+    const salt = await bcrypt.genSalt(12);
+    this.password = await bcrypt.hash(this.password, salt);
   }
 });
 
+// Password comparison method
 userSchema.methods.matchPassword = async function(enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
+// Password reset token generation
 userSchema.methods.createPasswordResetToken = function() {
   const resetToken = crypto.randomBytes(32).toString('hex');
   
@@ -151,15 +161,16 @@ userSchema.methods.createPasswordResetToken = function() {
   return resetToken;
 };
 
+// Permission checking methods
 userSchema.methods.hasPermission = function(permission) {
   // Superadmin has all permissions
   if (this.role === 'superadmin') return true;
   
   // Check if user has manage_all permission
-  if (this.permissions.includes('manage_all')) return true;
+  if (this.permissions && this.permissions.includes('manage_all')) return true;
   
   // Check if permission exists in user's permissions array
-  return this.permissions.includes(permission);
+  return this.permissions && this.permissions.includes(permission);
 };
 
 userSchema.methods.hasRole = function(role) {
@@ -168,6 +179,27 @@ userSchema.methods.hasRole = function(role) {
 
 userSchema.methods.isAdmin = function() {
   return this.role === 'admin' || this.role === 'superadmin';
+};
+
+// Event permission methods
+userSchema.methods.canViewEvents = function() {
+  return this.hasPermission('view_events');
+};
+
+userSchema.methods.canCreateEvents = function() {
+  return this.hasPermission('create_events');
+};
+
+userSchema.methods.canUpdateEvents = function() {
+  return this.hasPermission('update_events');
+};
+
+userSchema.methods.canDeleteEvents = function() {
+  return this.hasPermission('delete_events');
+};
+
+userSchema.methods.canPublishEvents = function() {
+  return this.hasPermission('publish_events');
 };
 
 const User = mongoose.model('User', userSchema);
