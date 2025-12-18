@@ -40,7 +40,8 @@ const seedDatabase = async () => {
         description: 'Administrator with LIMITED initial permissions',
         permissions: [
           'view_profile', 'update_profile', 'change_password',
-          'view_users', 'create_users', 'update_users', 'view_roles'
+          'view_users', 'create_users', 'update_users', 'view_roles',
+          'view_events', 'create_events', 'update_events'  // Added event permissions
         ],
         isDefault: false,
         isActive: true,
@@ -75,7 +76,8 @@ const seedDatabase = async () => {
       role: 'admin',
       permissions: [
         'view_profile', 'update_profile', 'change_password',
-        'view_users', 'create_users', 'update_users', 'view_roles'
+        'view_users', 'create_users', 'update_users', 'view_roles',
+        'view_events', 'create_events', 'update_events'  // Added event permissions
       ],
       isActive: true,
       createdBy: superadmin._id,
@@ -122,7 +124,7 @@ const seedDatabase = async () => {
     console.log(`  Password: SuperAdmin123`);
     console.log(`  Role: ${superadmin.role}`);
     console.log(`  Permissions: ${superadmin.permissions.join(', ')}`);
-    console.log('\nAdmin User (LIMITED PERMISSIONS):');
+    console.log('\nAdmin User (WITH EVENT PERMISSIONS):');
     console.log(`  Email: ${admin.email}`);
     console.log(`  Password: Admin12345`);
     console.log(`  Role: ${admin.role}`);
@@ -132,9 +134,10 @@ const seedDatabase = async () => {
     console.log(`  jane@example.com`);
     console.log(`  bob@example.com (inactive)`);
     console.log('\n🔑 Use these credentials for testing');
-    console.log('\n⚠️  IMPORTANT: Admin has LIMITED permissions initially!');
-    console.log('   Only Superadmin can assign additional permissions using:');
-    console.log('   PATCH /api/v1/auth/users/:id/permissions');
+    console.log('\n📅 EVENT MODULE READY:');
+    console.log('   Admin can now: view_events, create_events, update_events');
+    console.log('   Superadmin can: publish_events, delete_events');
+    console.log('   Regular users can only view published events');
     
     process.exit(0);
   } catch (error) {
