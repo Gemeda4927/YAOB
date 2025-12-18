@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "Auth API - Production Ready",
-    "description": "🔐 Complete Authentication & User Management API\n\n📦 Features:\n• JWT Authentication\n• Role-Based Access Control (RBAC)\n• Permission Management\n• Password Reset Flow\n• User Management\n• Admin/Superadmin Controls\n\n👥 User Types:\n• Regular User\n• Admin User\n• Superadmin User\n\n📚 Test Credentials (from seeder):\n• Superadmin: superadmin@example.com / SuperAdmin123\n• Admin: admin@example.com / Admin12345\n• Users: john@example.com, jane@example.com / User12345",
+    "name": "Sadii Marketplace - Complete API Collection",
+    "description": "Complete API collection for Sadii Marketplace including Authentication, Events, Products, Orders, and Admin Management",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "version": "1.0.0"
   },
@@ -75,29 +75,47 @@
       "key": "targetUserId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "uniqueTestEmail",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userToDeleteId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "eventId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "organizerEventId",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
     {
-      "name": "📋 SETUP & CONFIGURATION",
+      "name": "SETUP & CONFIGURATION",
       "description": "Initial setup and environment configuration",
       "item": [
         {
-          "name": "1️⃣ Environment Setup",
+          "name": "1 Environment Setup",
           "event": [
             {
               "listen": "prerequest",
               "script": {
                 "exec": [
-                  "// Generate unique test data",
                   "const timestamp = new Date().getTime();",
                   "pm.variables.set('timestamp', timestamp);",
                   "pm.variables.set('testEmail', `testuser_${timestamp}@example.com`);",
                   "pm.variables.set('testName', `Test User ${timestamp}`);",
-                  "",
-                  "console.log('✅ Test environment configured');",
-                  "console.log(`📧 Test Email: ${pm.variables.get('testEmail')}`);",
-                  "console.log(`👤 Test Name: ${pm.variables.get('testName')}`);"
+                  "console.log('Test environment configured');",
+                  "console.log(`Test Email: ${pm.variables.get('testEmail')}`);",
+                  "console.log(`Test Name: ${pm.variables.get('testName')}`);"
                 ],
                 "type": "text/javascript"
               }
@@ -106,7 +124,7 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test(\"Setup completed\", function() {",
+                  "pm.test('Setup completed', function() {",
                   "    pm.expect(pm.variables.get('testEmail')).to.include('@example.com');",
                   "    pm.expect(pm.variables.get('testName')).to.include('Test User');",
                   "});"
@@ -120,100 +138,155 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/",
-              "host": ["{{baseUrl}}"],
-              "path": [""]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                ""
+              ]
             }
           }
         },
         {
-          "name": "2️⃣ Health Check",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/health",
-              "host": ["{{baseUrl}}"],
-              "path": ["health"]
-            }
-          },
-          "response": [],
+          "name": "2 Health Check",
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "console.log('Checking API health...');"
+                ],
+                "type": "text/javascript"
+              }
+            },
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "// Status code test",
-                  "pm.test(\"Status code is 200\", function () {",
+                  "pm.test('Status code is 200', function () {",
                   "    pm.response.to.have.status(200);",
                   "});",
-                  "",
-                  "// Response body tests",
-                  "pm.test(\"Response has correct structure\", function () {",
+                  "pm.test('Response has correct structure', function () {",
                   "    const jsonData = pm.response.json();",
                   "    pm.expect(jsonData).to.have.property('status', 'UP');",
                   "    pm.expect(jsonData).to.have.property('timestamp');",
                   "    pm.expect(jsonData).to.have.property('uptime');",
                   "    pm.expect(jsonData).to.have.property('environment');",
                   "});",
-                  "",
-                  "// Performance test",
-                  "pm.test(\"Response time is less than 500ms\", function () {",
+                  "pm.test('Response time is less than 500ms', function () {",
                   "    pm.expect(pm.response.responseTime).to.be.below(500);",
                   "});"
                 ],
                 "type": "text/javascript"
               }
             }
-          ]
-        },
-        {
-          "name": "3️⃣ API Documentation",
+          ],
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/{{apiVersion}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "{{apiVersion}}"]
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
             }
           },
-          "response": [],
+          "response": []
+        },
+        {
+          "name": "3 API Documentation",
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "console.log('Fetching API documentation...');"
+                ],
+                "type": "text/javascript"
+              }
+            },
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test(\"API endpoints documented\", function () {",
+                  "pm.test('API endpoints documented', function () {",
                   "    const jsonData = pm.response.json();",
                   "    pm.expect(jsonData.success).to.be.true;",
                   "    pm.expect(jsonData).to.have.property('endpoints');",
                   "    pm.expect(jsonData.endpoints).to.have.property('auth');",
+                  "    pm.expect(jsonData.endpoints).to.have.property('events');",
                   "    console.log('Available endpoints:', JSON.stringify(jsonData.endpoints, null, 2));",
                   "});"
                 ],
                 "type": "text/javascript"
               }
             }
-          ]
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/{{apiVersion}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "{{apiVersion}}"
+              ]
+            }
+          },
+          "response": []
         }
       ]
     },
     {
-      "name": "👤 PUBLIC AUTHENTICATION",
+      "name": "PUBLIC AUTHENTICATION",
       "description": "Public endpoints - No authentication required",
       "item": [
         {
-          "name": "1️⃣ User Registration (Signup)",
+          "name": "1 User Registration (Signup)",
           "event": [
             {
               "listen": "prerequest",
               "script": {
                 "exec": [
-                  "// Generate unique email for each test run",
                   "const timestamp = new Date().getTime();",
                   "const testEmail = `newuser_${timestamp}@example.com`;",
                   "pm.variables.set('uniqueTestEmail', testEmail);",
                   "console.log(`Using email: ${testEmail}`);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.variables.set('userId', response.data.user._id);",
+                  "    pm.variables.set('userToken', response.data.token);",
+                  "    pm.variables.set('targetUserId', response.data.user._id);",
+                  "    pm.collectionVariables.set('userToken', response.data.token);",
+                  "    console.log('User registered:', response.data.user.email);",
+                  "    console.log('Token stored:', response.data.token.substring(0, 50) + '...');",
+                  "    console.log('Target User ID:', response.data.user._id);",
+                  "}",
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Response has correct structure', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.data).to.have.property('user');",
+                  "    pm.expect(jsonData.data).to.have.property('token');",
+                  "    pm.expect(jsonData.data.user).to.not.have.property('password');",
+                  "    pm.expect(jsonData.data.user.role).to.equal('user');",
+                  "});"
                 ],
                 "type": "text/javascript"
               }
@@ -238,50 +311,58 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/signup",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "{{apiVersion}}", "auth", "signup"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "{{apiVersion}}",
+                "auth",
+                "signup"
+              ]
             },
             "description": "Register a new user account"
           },
-          "response": [],
+          "response": []
+        },
+        {
+          "name": "2 User Login",
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "console.log('Logging in as regular user...');"
+                ],
+                "type": "text/javascript"
+              }
+            },
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "// Store the user ID and token for later use",
-                  "if (pm.response.code === 201) {",
+                  "if (pm.response.code === 200) {",
                   "    const response = pm.response.json();",
-                  "    pm.variables.set('userId', response.data.user._id);",
                   "    pm.variables.set('userToken', response.data.token);",
+                  "    pm.variables.set('userId', response.data.user._id);",
                   "    pm.variables.set('targetUserId', response.data.user._id);",
                   "    pm.collectionVariables.set('userToken', response.data.token);",
-                  "    console.log('✅ User registered:', response.data.user.email);",
-                  "    console.log('🔑 Token stored:', response.data.token.substring(0, 50) + '...');",
-                  "    console.log('🎯 Target User ID:', response.data.user._id);",
+                  "    console.log('User logged in:', response.data.user.email);",
                   "}",
-                  "",
-                  "// Validation tests",
-                  "pm.test(\"Status code is 201\", function () {",
-                  "    pm.response.to.have.status(201);",
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
                   "});",
-                  "",
-                  "pm.test(\"Response has correct structure\", function () {",
+                  "pm.test('Login successful', function () {",
                   "    const jsonData = pm.response.json();",
                   "    pm.expect(jsonData.success).to.be.true;",
-                  "    pm.expect(jsonData.data).to.have.property('user');",
-                  "    pm.expect(jsonData.data).to.have.property('token');",
-                  "    pm.expect(jsonData.data.user).to.not.have.property('password');",
-                  "    pm.expect(jsonData.data.user.role).to.equal('user');",
+                  "    pm.expect(jsonData.data.user.email).to.equal('john@example.com');",
+                  "    pm.expect(jsonData.data).to.have.property('tokenType', 'Bearer');",
                   "});"
                 ],
                 "type": "text/javascript"
               }
             }
-          ]
-        },
-        {
-          "name": "2️⃣ User Login",
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -301,45 +382,55 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/login",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "{{apiVersion}}", "auth", "login"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "{{apiVersion}}",
+                "auth",
+                "login"
+              ]
             },
             "description": "Login with seeded user credentials"
           },
-          "response": [],
+          "response": []
+        },
+        {
+          "name": "3 Admin Login",
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "console.log('Logging in as admin...');"
+                ],
+                "type": "text/javascript"
+              }
+            },
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "// Store token for regular user",
                   "if (pm.response.code === 200) {",
                   "    const response = pm.response.json();",
-                  "    pm.variables.set('userToken', response.data.token);",
-                  "    pm.variables.set('userId', response.data.user._id);",
-                  "    pm.variables.set('targetUserId', response.data.user._id);",
-                  "    pm.collectionVariables.set('userToken', response.data.token);",
-                  "    console.log('✅ User logged in:', response.data.user.email);",
+                  "    pm.variables.set('adminToken', response.data.token);",
+                  "    pm.variables.set('adminId', response.data.user._id);",
+                  "    pm.collectionVariables.set('adminToken', response.data.token);",
+                  "    console.log('Admin logged in:', response.data.user.email);",
+                  "    console.log('Role:', response.data.user.role);",
+                  "    console.log('Permissions:', response.data.user.permissions);",
                   "}",
-                  "",
-                  "pm.test(\"Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test(\"Login successful\", function () {",
+                  "pm.test('Admin login successful', function () {",
                   "    const jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.success).to.be.true;",
-                  "    pm.expect(jsonData.data.user.email).to.equal('john@example.com');",
-                  "    pm.expect(jsonData.data).to.have.property('tokenType', 'Bearer');",
+                  "    pm.expect(jsonData.data.user.role).to.equal('admin');",
+                  "    pm.expect(jsonData.data.user.permissions).to.include('view_users');",
                   "});"
                 ],
                 "type": "text/javascript"
               }
             }
-          ]
-        },
-        {
-          "name": "3️⃣ Admin Login",
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -359,41 +450,54 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/login",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "{{apiVersion}}", "auth", "login"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "{{apiVersion}}",
+                "auth",
+                "login"
+              ]
             },
             "description": "Login with admin credentials"
           },
-          "response": [],
+          "response": []
+        },
+        {
+          "name": "4 Superadmin Login",
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "console.log('Logging in as superadmin...');"
+                ],
+                "type": "text/javascript"
+              }
+            },
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "// Store admin token",
                   "if (pm.response.code === 200) {",
                   "    const response = pm.response.json();",
-                  "    pm.variables.set('adminToken', response.data.token);",
-                  "    pm.variables.set('adminId', response.data.user._id);",
-                  "    pm.collectionVariables.set('adminToken', response.data.token);",
-                  "    console.log('✅ Admin logged in:', response.data.user.email);",
-                  "    console.log('👑 Role:', response.data.user.role);",
-                  "    console.log('🔑 Permissions:', response.data.user.permissions);",
+                  "    pm.variables.set('superadminToken', response.data.token);",
+                  "    pm.collectionVariables.set('superadminToken', response.data.token);",
+                  "    console.log('Superadmin logged in:', response.data.user.email);",
+                  "    console.log('Role:', response.data.user.role);",
+                  "    console.log('Permissions:', response.data.user.permissions);",
                   "}",
-                  "",
-                  "pm.test(\"Admin login successful\", function () {",
+                  "pm.test('Superadmin login successful', function () {",
                   "    const jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.data.user.role).to.equal('admin');",
-                  "    pm.expect(jsonData.data.user.permissions).to.include('view_users');",
+                  "    pm.expect(jsonData.data.user.role).to.equal('superadmin');",
+                  "    pm.expect(jsonData.data.user.permissions).to.include('manage_all');",
                   "});"
                 ],
                 "type": "text/javascript"
               }
             }
-          ]
-        },
-        {
-          "name": "4️⃣ Superadmin Login",
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -413,130 +517,33 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/login",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "{{apiVersion}}", "auth", "login"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "{{apiVersion}}",
+                "auth",
+                "login"
+              ]
             },
             "description": "Login with superadmin credentials"
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "// Store superadmin token",
-                  "if (pm.response.code === 200) {",
-                  "    const response = pm.response.json();",
-                  "    pm.variables.set('superadminToken', response.data.token);",
-                  "    pm.collectionVariables.set('superadminToken', response.data.token);",
-                  "    console.log('✅ Superadmin logged in:', response.data.user.email);",
-                  "    console.log('👑 Role:', response.data.user.role);",
-                  "    console.log('🔑 Permissions:', response.data.user.permissions);",
-                  "}",
-                  "",
-                  "pm.test(\"Superadmin login successful\", function () {",
-                  "    const jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.data.user.role).to.equal('superadmin');",
-                  "    pm.expect(jsonData.data.user.permissions).to.include('manage_all');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "5️⃣ Forgot Password",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"john@example.com\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/forgot-password",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "{{apiVersion}}", "auth", "forgot-password"]
-            },
-            "description": "Request password reset"
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Password reset requested\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "    const jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.success).to.be.true;",
-                  "    ",
-                  "    // In development mode, we should get the token",
-                  "    if (pm.environment.name === 'development') {",
-                  "        pm.expect(jsonData.data).to.have.property('resetToken');",
-                  "        pm.variables.set('resetToken', jsonData.data.resetToken);",
-                  "        console.log('🔐 Reset token:', jsonData.data.resetToken);",
-                  "    }",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "6️⃣ Reset Password (Dev Mode)",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"password\": \"NewPassword123!\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/reset-password/{{resetToken}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "{{apiVersion}}", "auth", "reset-password", "{{resetToken}}"]
-            },
-            "description": "Reset password using token (development mode only)"
           },
           "response": []
         }
       ]
     },
     {
-      "name": "🔐 PROTECTED USER ROUTES",
+      "name": "PROTECTED USER ROUTES",
       "description": "Endpoints requiring user authentication",
       "item": [
         {
-          "name": "1️⃣ Get My Profile",
+          "name": "1 Get My Profile",
           "event": [
             {
               "listen": "prerequest",
               "script": {
                 "exec": [
-                  "// Set authorization header",
                   "const token = pm.variables.get('userToken');",
                   "pm.request.headers.add({",
                   "    key: 'Authorization',",
@@ -546,25 +553,12 @@
                 ],
                 "type": "text/javascript"
               }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/me",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "{{apiVersion}}", "auth", "me"]
             },
-            "description": "Get authenticated user's profile"
-          },
-          "response": [],
-          "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test(\"Profile retrieved successfully\", function () {",
+                  "pm.test('Profile retrieved successfully', function () {",
                   "    pm.response.to.have.status(200);",
                   "    const jsonData = pm.response.json();",
                   "    pm.expect(jsonData.success).to.be.true;",
@@ -577,10 +571,28 @@
                 "type": "text/javascript"
               }
             }
-          ]
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "{{apiVersion}}",
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Get authenticated user's profile"
+          },
+          "response": []
         },
         {
-          "name": "2️⃣ Update My Profile",
+          "name": "2 Update My Profile",
           "event": [
             {
               "listen": "prerequest",
@@ -590,6 +602,21 @@
                   "pm.request.headers.add({",
                   "    key: 'Authorization',",
                   "    value: `Bearer ${token}`",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Profile updated successfully', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.data.user.name).to.include('Updated Name');",
+                  "    console.log('Updated name:', jsonData.data.user.name);",
                   "});"
                 ],
                 "type": "text/javascript"
@@ -615,32 +642,22 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/update-profile",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "{{apiVersion}}", "auth", "update-profile"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "{{apiVersion}}",
+                "auth",
+                "update-profile"
+              ]
             },
             "description": "Update authenticated user's profile"
           },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Profile updated successfully\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "    const jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.success).to.be.true;",
-                  "    pm.expect(jsonData.data.user.name).to.include('Updated Name');",
-                  "    console.log('Updated name:', jsonData.data.user.name);",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
+          "response": []
         },
         {
-          "name": "3️⃣ Change Password",
+          "name": "3 Change Password",
           "event": [
             {
               "listen": "prerequest",
@@ -650,6 +667,22 @@
                   "pm.request.headers.add({",
                   "    key: 'Authorization',",
                   "    value: `Bearer ${token}`",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Password changed successfully', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.data).to.have.property('token');",
+                  "    pm.variables.set('userToken', jsonData.data.token);",
+                  "    console.log('New token issued');",
                   "});"
                 ],
                 "type": "text/javascript"
@@ -675,34 +708,992 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/change-password",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "{{apiVersion}}", "auth", "change-password"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "{{apiVersion}}",
+                "auth",
+                "change-password"
+              ]
             },
             "description": "Change authenticated user's password"
           },
-          "response": [],
-          "event": [
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "EVENTS API",
+      "description": "Event Management API with Public, Organizer, and Admin routes",
+      "item": [
+        {
+          "name": "PUBLIC EVENTS",
+          "description": "Public event endpoints - No authentication required",
+          "item": [
             {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Password changed successfully\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "    const jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.success).to.be.true;",
-                  "    pm.expect(jsonData.data).to.have.property('token');",
-                  "    // Store new token",
-                  "    pm.variables.set('userToken', jsonData.data.token);",
-                  "    console.log('🔑 New token issued');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
+              "name": "1 Get All Events",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "console.log('Fetching all published events...');"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Events retrieved successfully', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.success).to.be.true;",
+                      "    pm.expect(jsonData.data).to.have.property('events');",
+                      "    pm.expect(jsonData.data.events).to.be.an('array');",
+                      "    if (jsonData.data.events.length > 0) {",
+                      "        pm.variables.set('eventId', jsonData.data.events[0]._id);",
+                      "        console.log('First event ID stored:', jsonData.data.events[0]._id);",
+                      "    }",
+                      "    console.log('Total events:', jsonData.data.total);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/{{apiVersion}}/events",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "{{apiVersion}}",
+                    "events"
+                  ]
+                },
+                "description": "Get all published events (public)"
+              },
+              "response": []
+            },
+            {
+              "name": "2 Get Single Event",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "console.log('Fetching event by ID:', pm.variables.get('eventId'));"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Event retrieved successfully', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.success).to.be.true;",
+                      "    pm.expect(jsonData.data).to.have.property('event');",
+                      "    pm.expect(jsonData.data.event._id).to.equal(pm.variables.get('eventId'));",
+                      "    console.log('Event title:', jsonData.data.event.title);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/{{apiVersion}}/events/{{eventId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "{{apiVersion}}",
+                    "events",
+                    "{{eventId}}"
+                  ]
+                },
+                "description": "Get single event by ID (public)"
+              },
+              "response": []
+            },
+            {
+              "name": "3 Get Upcoming Events",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "console.log('Fetching upcoming events...');"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Upcoming events retrieved', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.success).to.be.true;",
+                      "    pm.expect(jsonData.data).to.have.property('events');",
+                      "    console.log('Upcoming events count:', jsonData.data.events.length);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/{{apiVersion}}/events/upcoming/events",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "{{apiVersion}}",
+                    "events",
+                    "upcoming",
+                    "events"
+                  ]
+                },
+                "description": "Get upcoming events (public)"
+              },
+              "response": []
             }
           ]
         },
         {
-          "name": "4️⃣ Logout",
+          "name": "ORGANIZER EVENTS",
+          "description": "Organizer-only event endpoints",
+          "item": [
+            {
+              "name": "1 Get My Events",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.variables.get('userToken');",
+                      "pm.request.headers.add({",
+                      "    key: 'Authorization',",
+                      "    value: `Bearer ${token}`",
+                      "});",
+                      "console.log('Fetching events created by me...');"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('My events retrieved', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.success).to.be.true;",
+                      "    pm.expect(jsonData.data).to.have.property('events');",
+                      "    if (jsonData.data.events.length > 0) {",
+                      "        pm.variables.set('organizerEventId', jsonData.data.events[0]._id);",
+                      "        console.log('My event ID stored:', jsonData.data.events[0]._id);",
+                      "    }",
+                      "    console.log('My events count:', jsonData.data.events.length);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/{{apiVersion}}/events/my/events",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "{{apiVersion}}",
+                    "events",
+                    "my",
+                    "events"
+                  ]
+                },
+                "description": "Get events created by authenticated user"
+              },
+              "response": []
+            },
+            {
+              "name": "2 Create Event",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.variables.get('userToken');",
+                      "pm.request.headers.add({",
+                      "    key: 'Authorization',",
+                      "    value: `Bearer ${token}`",
+                      "});",
+                      "console.log('Creating new event...');"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    const response = pm.response.json();",
+                      "    pm.variables.set('organizerEventId', response.data.event._id);",
+                      "    console.log('Event created with ID:', response.data.event._id);",
+                      "}",
+                      "pm.test('Event created successfully', function () {",
+                      "    pm.response.to.have.status(201);",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.success).to.be.true;",
+                      "    pm.expect(jsonData.data.event).to.have.property('title', 'Tech Conference 2024');",
+                      "    pm.expect(jsonData.data.event.organizer._id).to.equal(pm.variables.get('userId'));",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Tech Conference 2024\",\n  \"description\": \"Annual technology conference with industry leaders\",\n  \"date\": \"2024-12-15T09:00:00.000Z\",\n  \"location\": \"Convention Center, San Francisco\",\n  \"category\": \"Technology\",\n  \"maxAttendees\": 500,\n  \"ticketPrice\": 299.99,\n  \"isPublished\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/{{apiVersion}}/events",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "{{apiVersion}}",
+                    "events"
+                  ]
+                },
+                "description": "Create a new event (requires create_events permission)"
+              },
+              "response": []
+            },
+            {
+              "name": "3 Update My Event",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.variables.get('userToken');",
+                      "pm.request.headers.add({",
+                      "    key: 'Authorization',",
+                      "    value: `Bearer ${token}`",
+                      "});",
+                      "console.log('Updating my event:', pm.variables.get('organizerEventId'));"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Event updated successfully', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.success).to.be.true;",
+                      "    pm.expect(jsonData.data.event.title).to.equal('Updated Tech Conference');",
+                      "    pm.expect(jsonData.data.event.ticketPrice).to.equal(349.99);",
+                      "    console.log('Event updated:', jsonData.data.event.title);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Updated Tech Conference\",\n  \"ticketPrice\": 349.99,\n  \"description\": \"Updated description for the tech conference\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/{{apiVersion}}/events/{{organizerEventId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "{{apiVersion}}",
+                    "events",
+                    "{{organizerEventId}}"
+                  ]
+                },
+                "description": "Update event (must be organizer or have update_events permission)"
+              },
+              "response": []
+            },
+            {
+              "name": "4 Delete My Event",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.variables.get('userToken');",
+                      "pm.request.headers.add({",
+                      "    key: 'Authorization',",
+                      "    value: `Bearer ${token}`",
+                      "});",
+                      "console.log('Deleting my event:', pm.variables.get('organizerEventId'));"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Event deleted successfully', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.success).to.be.true;",
+                      "    pm.expect(jsonData.message).to.include('deleted');",
+                      "    console.log('Event deleted:', jsonData.message);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/{{apiVersion}}/events/{{organizerEventId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "{{apiVersion}}",
+                    "events",
+                    "{{organizerEventId}}"
+                  ]
+                },
+                "description": "Delete event (must be organizer or have delete_events permission)"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "ADMIN EVENT MANAGEMENT",
+          "description": "Admin-only event management endpoints",
+          "item": [
+            {
+              "name": "1 Publish Event",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.variables.get('adminToken');",
+                      "pm.request.headers.add({",
+                      "    key: 'Authorization',",
+                      "    value: `Bearer ${token}`",
+                      "});",
+                      "console.log('Publishing event:', pm.variables.get('organizerEventId'));"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Event published successfully', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.success).to.be.true;",
+                      "    pm.expect(jsonData.data.event.isPublished).to.be.true;",
+                      "    pm.expect(jsonData.data.event.publishedAt).to.exist;",
+                      "    console.log('Event published at:', jsonData.data.event.publishedAt);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/{{apiVersion}}/events/{{organizerEventId}}/publish",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "{{apiVersion}}",
+                    "events",
+                    "{{organizerEventId}}",
+                    "publish"
+                  ]
+                },
+                "description": "Publish an event (requires publish_events permission)"
+              },
+              "response": []
+            },
+            {
+              "name": "2 Admin Update Any Event",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.variables.get('adminToken');",
+                      "pm.request.headers.add({",
+                      "    key: 'Authorization',",
+                      "    value: `Bearer ${token}`",
+                      "});",
+                      "console.log('Admin updating event:', pm.variables.get('eventId'));"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Admin updated event', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.success).to.be.true;",
+                      "    pm.expect(jsonData.data.event.category).to.equal('Technology & Innovation');",
+                      "    console.log('Admin updated event category to:', jsonData.data.event.category);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"category\": \"Technology & Innovation\",\n  \"maxAttendees\": 1000\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/{{apiVersion}}/events/{{eventId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "{{apiVersion}}",
+                    "events",
+                    "{{eventId}}"
+                  ]
+                },
+                "description": "Admin update any event (requires update_events permission)"
+              },
+              "response": []
+            },
+            {
+              "name": "3 Admin Delete Any Event",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.variables.get('adminToken');",
+                      "pm.request.headers.add({",
+                      "    key: 'Authorization',",
+                      "    value: `Bearer ${token}`",
+                      "});",
+                      "console.log('Admin deleting event:', pm.variables.get('eventId'));"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Admin deleted event', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.success).to.be.true;",
+                      "    pm.expect(jsonData.message).to.include('deleted');",
+                      "    console.log('Admin deleted event:', jsonData.message);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/{{apiVersion}}/events/{{eventId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "{{apiVersion}}",
+                    "events",
+                    "{{eventId}}"
+                  ]
+                },
+                "description": "Admin delete any event (requires delete_events permission)"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ADMIN ROUTES",
+      "description": "Admin-only endpoints (admin & superadmin)",
+      "item": [
+        {
+          "name": "USER MANAGEMENT",
+          "description": "User management endpoints",
+          "item": [
+            {
+              "name": "1 Get All Users",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.variables.get('adminToken');",
+                      "pm.request.headers.add({",
+                      "    key: 'Authorization',",
+                      "    value: `Bearer ${token}`",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Users retrieved successfully', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.success).to.be.true;",
+                      "    pm.expect(jsonData.data.users).to.be.an('array');",
+                      "    if (jsonData.data.users.length > 0) {",
+                      "        const firstUser = jsonData.data.users[0];",
+                      "        if (firstUser.role === 'user') {",
+                      "            pm.variables.set('testUserId', firstUser._id);",
+                      "            pm.variables.set('targetUserId', firstUser._id);",
+                      "            console.log('Test user ID stored:', firstUser._id);",
+                      "        }",
+                      "    }",
+                      "    console.log(`Total users: ${jsonData.data.total}`);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/users",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "{{apiVersion}}",
+                    "auth",
+                    "users"
+                  ]
+                },
+                "description": "Get all users (admin permission required)"
+              },
+              "response": []
+            },
+            {
+              "name": "2 Get User by ID",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.variables.get('adminToken');",
+                      "pm.request.headers.add({",
+                      "    key: 'Authorization',",
+                      "    value: `Bearer ${token}`",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('User details retrieved', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.success).to.be.true;",
+                      "    pm.expect(jsonData.data.user._id).to.equal(pm.variables.get('targetUserId'));",
+                      "    pm.expect(jsonData.data.user).to.not.have.property('password');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/users/{{targetUserId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "{{apiVersion}}",
+                    "auth",
+                    "users",
+                    "{{targetUserId}}"
+                  ]
+                },
+                "description": "Get specific user details"
+              },
+              "response": []
+            },
+            {
+              "name": "3 Update User",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.variables.get('adminToken');",
+                      "pm.request.headers.add({",
+                      "    key: 'Authorization',",
+                      "    value: `Bearer ${token}`",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('User updated by admin', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.success).to.be.true;",
+                      "    pm.expect(jsonData.data.user.name).to.equal('Admin Updated User');",
+                      "    pm.expect(jsonData.data.user.isActive).to.be.true;",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Admin Updated User\",\n  \"isActive\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/users/{{targetUserId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "{{apiVersion}}",
+                    "auth",
+                    "users",
+                    "{{targetUserId}}"
+                  ]
+                },
+                "description": "Update user details (admin)"
+              },
+              "response": []
+            },
+            {
+              "name": "4 Delete User",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.variables.get('adminToken');",
+                      "pm.request.headers.add({",
+                      "    key: 'Authorization',",
+                      "    value: `Bearer ${token}`",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('User soft deleted', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.success).to.be.true;",
+                      "    pm.expect(jsonData.message).to.equal('User deleted successfully');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/users/{{targetUserId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "{{apiVersion}}",
+                    "auth",
+                    "users",
+                    "{{targetUserId}}"
+                  ]
+                },
+                "description": "Soft delete a user"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "SUPERADMIN ROUTES",
+      "description": "Superadmin exclusive endpoints",
+      "item": [
+        {
+          "name": "PERMISSION MANAGEMENT",
+          "description": "Advanced permission management endpoints",
+          "item": [
+            {
+              "name": "1 Get User Permissions",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.variables.get('superadminToken');",
+                      "pm.request.headers.add({",
+                      "    key: 'Authorization',",
+                      "    value: `Bearer ${token}`",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('User permissions retrieved', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.success).to.be.true;",
+                      "    pm.expect(jsonData.data).to.have.property('permissions');",
+                      "    pm.expect(jsonData.data).to.have.property('totalPermissions');",
+                      "    console.log('Current permissions:', jsonData.data.permissions);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/users/{{targetUserId}}/permissions",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "{{apiVersion}}",
+                    "auth",
+                    "users",
+                    "{{targetUserId}}",
+                    "permissions"
+                  ]
+                },
+                "description": "Get user's current permissions"
+              },
+              "response": []
+            },
+            {
+              "name": "2 REPLACE All Permissions",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.variables.get('superadminToken');",
+                      "pm.request.headers.add({",
+                      "    key: 'Authorization',",
+                      "    value: `Bearer ${token}`",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('All permissions replaced', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.success).to.be.true;",
+                      "    pm.expect(jsonData.data.user.permissions).to.include('create_events');",
+                      "    pm.expect(jsonData.data.user.permissions).to.include('update_events');",
+                      "    console.log('Updated permissions:', jsonData.data.user.permissions);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"permissions\": [\n    \"create_events\",\n    \"update_events\",\n    \"delete_events\",\n    \"publish_events\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/users/{{targetUserId}}/permissions/assign",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "{{apiVersion}}",
+                    "auth",
+                    "users",
+                    "{{targetUserId}}",
+                    "permissions",
+                    "assign"
+                  ]
+                },
+                "description": "REPLACE all permissions (overwrites existing)"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "AUTHORIZATION TESTS",
+      "description": "Test authorization and permission boundaries",
+      "item": [
+        {
+          "name": "1 User Accessing Admin Route",
           "event": [
             {
               "listen": "prerequest",
@@ -716,53 +1707,16 @@
                 ],
                 "type": "text/javascript"
               }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/logout",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "{{apiVersion}}", "auth", "logout"]
             },
-            "description": "Logout user (invalidate token on client side)"
-          },
-          "response": [],
-          "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test(\"Logout successful\", function () {",
-                  "    pm.response.to.have.status(200);",
+                  "pm.test('User denied access to admin route', function () {",
+                  "    pm.response.to.have.status(403);",
                   "    const jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.success).to.be.true;",
-                  "    pm.expect(jsonData.message).to.equal('Logged out successfully');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "👑 ADMIN ROUTES",
-      "description": "Admin-only endpoints (admin & superadmin)",
-      "item": [
-        {
-          "name": "1️⃣ Get All Users (Admin)",
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "exec": [
-                  "const token = pm.variables.get('adminToken');",
-                  "pm.request.headers.add({",
-                  "    key: 'Authorization',",
-                  "    value: `Bearer ${token}`",
+                  "    pm.expect(jsonData.success).to.be.false;",
+                  "    pm.expect(jsonData.message).to.include('Forbidden');",
                   "});"
                 ],
                 "type": "text/javascript"
@@ -774,49 +1728,28 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/users",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "{{apiVersion}}", "auth", "users"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "{{apiVersion}}",
+                "auth",
+                "users"
+              ]
             },
-            "description": "Get all users (admin permission required)"
+            "description": "Regular user trying to access admin-only route"
           },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Users retrieved successfully\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "    const jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.success).to.be.true;",
-                  "    pm.expect(jsonData.data.users).to.be.an('array');",
-                  "    ",
-                  "    // Store first user ID for testing",
-                  "    if (jsonData.data.users.length > 0) {",
-                  "        const firstUser = jsonData.data.users[0];",
-                  "        if (firstUser.role === 'user') {",
-                  "            pm.variables.set('testUserId', firstUser._id);",
-                  "            pm.variables.set('targetUserId', firstUser._id);",
-                  "            console.log('📝 Test user ID stored:', firstUser._id);",
-                  "        }",
-                  "    }",
-                  "    ",
-                  "    console.log(`Total users: ${jsonData.data.users.length}`);",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
+          "response": []
         },
         {
-          "name": "2️⃣ Get User by ID",
+          "name": "2 User Without Permission Creating Event",
           "event": [
             {
               "listen": "prerequest",
               "script": {
                 "exec": [
-                  "const token = pm.variables.get('adminToken');",
+                  "const token = pm.variables.get('userToken');",
                   "pm.request.headers.add({",
                   "    key: 'Authorization',",
                   "    value: `Bearer ${token}`",
@@ -824,48 +1757,16 @@
                 ],
                 "type": "text/javascript"
               }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/users/{{targetUserId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "{{apiVersion}}", "auth", "users", "{{targetUserId}}"]
             },
-            "description": "Get specific user details"
-          },
-          "response": [],
-          "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test(\"User details retrieved\", function () {",
-                  "    pm.response.to.have.status(200);",
+                  "pm.test('User denied event creation', function () {",
+                  "    pm.response.to.have.status(403);",
                   "    const jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.success).to.be.true;",
-                  "    pm.expect(jsonData.data.user._id).to.equal(pm.variables.get('targetUserId'));",
-                  "    pm.expect(jsonData.data.user).to.not.have.property('password');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "3️⃣ Update User (Admin)",
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "exec": [
-                  "const token = pm.variables.get('adminToken');",
-                  "pm.request.headers.add({",
-                  "    key: 'Authorization',",
-                  "    value: `Bearer ${token}`",
+                  "    pm.expect(jsonData.success).to.be.false;",
+                  "    pm.expect(jsonData.message).to.include('permission');",
                   "});"
                 ],
                 "type": "text/javascript"
@@ -873,7 +1774,7 @@
             }
           ],
           "request": {
-            "method": "PATCH",
+            "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
@@ -882,7 +1783,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Admin Updated User\",\n  \"isActive\": true\n}",
+              "raw": "{\n  \"title\": \"Test Event\",\n  \"description\": \"Test\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -890,505 +1791,19 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/users/{{targetUserId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "{{apiVersion}}", "auth", "users", "{{targetUserId}}"]
+              "raw": "{{baseUrl}}/api/{{apiVersion}}/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "{{apiVersion}}",
+                "events"
+              ]
             },
-            "description": "Update user details (admin)"
+            "description": "User without create_events permission"
           },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"User updated by admin\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "    const jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.success).to.be.true;",
-                  "    pm.expect(jsonData.data.user.name).to.equal('Admin Updated User');",
-                  "    pm.expect(jsonData.data.user.isActive).to.be.true;",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "4️⃣ Delete User (Soft Delete)",
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "exec": [
-                  "const token = pm.variables.get('adminToken');",
-                  "pm.request.headers.add({",
-                  "    key: 'Authorization',",
-                  "    value: `Bearer ${token}`",
-                  "});",
-                  "",
-                  "// Create a test user to delete",
-                  "const timestamp = new Date().getTime();",
-                  "const deleteUserEmail = `delete_${timestamp}@example.com`;",
-                  "",
-                  "// First create a user",
-                  "pm.sendRequest({",
-                  "    url: pm.variables.get('baseUrl') + '/api/' + pm.variables.get('apiVersion') + '/auth/signup',",
-                  "    method: 'POST',",
-                  "    header: {",
-                  "        'Content-Type': 'application/json'",
-                  "    },",
-                  "    body: {",
-                  "        mode: 'raw',",
-                  "        raw: JSON.stringify({",
-                  "            name: 'User to Delete',",
-                  "            email: deleteUserEmail,",
-                  "            password: 'Test12345'",
-                  "        })",
-                  "    }",
-                  "}, function (err, res) {",
-                  "    if (!err && res.code === 201) {",
-                  "        const userId = res.json().data.user._id;",
-                  "        pm.variables.set('userToDeleteId', userId);",
-                  "        console.log('Created user for deletion:', userId);",
-                  "    }",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/users/{{userToDeleteId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "{{apiVersion}}", "auth", "users", "{{userToDeleteId}}"]
-            },
-            "description": "Soft delete a user"
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"User soft deleted\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "    const jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.success).to.be.true;",
-                  "    pm.expect(jsonData.message).to.equal('User deleted successfully');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "⚡ SUPERADMIN ROUTES",
-      "description": "Superadmin exclusive endpoints",
-      "item": [
-        {
-          "name": "1️⃣ Superadmin Stats",
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "exec": [
-                  "const token = pm.variables.get('superadminToken');",
-                  "pm.request.headers.add({",
-                  "    key: 'Authorization',",
-                  "    value: `Bearer ${token}`",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/superadmin/stats",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "{{apiVersion}}", "auth", "superadmin", "stats"]
-            },
-            "description": "Get system statistics (superadmin only)"
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Superadmin stats retrieved\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "    const jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.success).to.be.true;",
-                  "    pm.expect(jsonData.data).to.have.property('totalUsers');",
-                  "    pm.expect(jsonData.data).to.have.property('admins');",
-                  "    pm.expect(jsonData.data).to.have.property('superadmins');",
-                  "    ",
-                  "    console.log('System Stats:', JSON.stringify(jsonData.data, null, 2));",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "🔐 PERMISSION MANAGEMENT",
-          "description": "Advanced permission management endpoints",
-          "item": [
-            {
-              "name": "1️⃣ Get User Permissions",
-              "event": [
-                {
-                  "listen": "prerequest",
-                  "script": {
-                    "exec": [
-                      "const token = pm.variables.get('superadminToken');",
-                      "pm.request.headers.add({",
-                      "    key: 'Authorization',",
-                      "    value: `Bearer ${token}`",
-                      "});",
-                      "console.log('Getting permissions for user:', pm.variables.get('targetUserId'));"
-                    ],
-                    "type": "text/javascript"
-                  }
-                }
-              ],
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/users/{{targetUserId}}/permissions",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["api", "{{apiVersion}}", "auth", "users", "{{targetUserId}}", "permissions"]
-                },
-                "description": "Get user's current permissions"
-              },
-              "response": [],
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "exec": [
-                      "pm.test(\"User permissions retrieved\", function () {",
-                      "    pm.response.to.have.status(200);",
-                      "    const jsonData = pm.response.json();",
-                      "    pm.expect(jsonData.success).to.be.true;",
-                      "    pm.expect(jsonData.data).to.have.property('permissions');",
-                      "    pm.expect(jsonData.data).to.have.property('totalPermissions');",
-                      "    console.log('Current permissions:', jsonData.data.permissions);",
-                      "    console.log('Total permissions:', jsonData.data.totalPermissions);",
-                      "});"
-                    ],
-                    "type": "text/javascript"
-                  }
-                }
-              ]
-            },
-            {
-              "name": "2️⃣ REPLACE All Permissions",
-              "event": [
-                {
-                  "listen": "prerequest",
-                  "script": {
-                    "exec": [
-                      "const token = pm.variables.get('superadminToken');",
-                      "pm.request.headers.add({",
-                      "    key: 'Authorization',",
-                      "    value: `Bearer ${token}`",
-                      "});"
-                    ],
-                    "type": "text/javascript"
-                  }
-                }
-              ],
-              "request": {
-                "method": "PATCH",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"permissions\": [\n    \"view_profile\",\n    \"update_profile\",\n    \"change_password\",\n    \"view_users\",\n    \"create_users\"\n  ]\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/users/{{targetUserId}}/permissions/assign",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["api", "{{apiVersion}}", "auth", "users", "{{targetUserId}}", "permissions", "assign"]
-                },
-                "description": "REPLACE all permissions (overwrites existing)"
-              },
-              "response": [],
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "exec": [
-                      "pm.test(\"All permissions replaced\", function () {",
-                      "    pm.response.to.have.status(200);",
-                      "    const jsonData = pm.response.json();",
-                      "    pm.expect(jsonData.success).to.be.true;",
-                      "    pm.expect(jsonData.data.user.permissions).to.include('create_users');",
-                      "    pm.expect(jsonData.data.user.permissions).to.include('view_users');",
-                      "    console.log('✅ All permissions replaced');",
-                      "    console.log('Updated permissions:', jsonData.data.user.permissions);",
-                      "});"
-                    ],
-                    "type": "text/javascript"
-                  }
-                }
-              ]
-            },
-            {
-              "name": "3️⃣ ADD Specific Permissions",
-              "event": [
-                {
-                  "listen": "prerequest",
-                  "script": {
-                    "exec": [
-                      "const token = pm.variables.get('superadminToken');",
-                      "pm.request.headers.add({",
-                      "    key: 'Authorization',",
-                      "    value: `Bearer ${token}`",
-                      "});"
-                    ],
-                    "type": "text/javascript"
-                  }
-                }
-              ],
-              "request": {
-                "method": "PATCH",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"permissions\": [\n    \"delete_users\",\n    \"view_roles\"\n  ]\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/users/{{targetUserId}}/permissions/add",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["api", "{{apiVersion}}", "auth", "users", "{{targetUserId}}", "permissions", "add"]
-                },
-                "description": "ADD permissions (keeps existing)"
-              },
-              "response": [],
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "exec": [
-                      "pm.test(\"Permissions added successfully\", function () {",
-                      "    pm.response.to.have.status(200);",
-                      "    const jsonData = pm.response.json();",
-                      "    pm.expect(jsonData.success).to.be.true;",
-                      "    pm.expect(jsonData.data.user.permissions).to.include('delete_users');",
-                      "    pm.expect(jsonData.data.user.permissions).to.include('view_roles');",
-                      "    console.log('✅ Permissions added');",
-                      "    console.log('Added permissions:', jsonData.data.addedPermissions);",
-                      "    console.log('Total permissions now:', jsonData.data.totalPermissions);",
-                      "});"
-                    ],
-                    "type": "text/javascript"
-                  }
-                }
-              ]
-            },
-            {
-              "name": "4️⃣ REMOVE Specific Permissions",
-              "event": [
-                {
-                  "listen": "prerequest",
-                  "script": {
-                    "exec": [
-                      "const token = pm.variables.get('superadminToken');",
-                      "pm.request.headers.add({",
-                      "    key: 'Authorization',",
-                      "    value: `Bearer ${token}`",
-                      "});"
-                    ],
-                    "type": "text/javascript"
-                  }
-                }
-              ],
-              "request": {
-                "method": "PATCH",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"permissions\": [\n    \"delete_users\"\n  ]\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/users/{{targetUserId}}/permissions/remove",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["api", "{{apiVersion}}", "auth", "users", "{{targetUserId}}", "permissions", "remove"]
-                },
-                "description": "REMOVE specific permissions"
-              },
-              "response": [],
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "exec": [
-                      "pm.test(\"Permissions removed successfully\", function () {",
-                      "    pm.response.to.have.status(200);",
-                      "    const jsonData = pm.response.json();",
-                      "    pm.expect(jsonData.success).to.be.true;",
-                      "    pm.expect(jsonData.data.user.permissions).to.not.include('delete_users');",
-                      "    console.log('✅ Permissions removed');",
-                      "    console.log('Removed permissions:', jsonData.data.removedPermissions);",
-                      "    console.log('Total permissions now:', jsonData.data.totalPermissions);",
-                      "});"
-                    ],
-                    "type": "text/javascript"
-                  }
-                }
-              ]
-            },
-            {
-              "name": "5️⃣ RESET to Default Permissions",
-              "event": [
-                {
-                  "listen": "prerequest",
-                  "script": {
-                    "exec": [
-                      "const token = pm.variables.get('superadminToken');",
-                      "pm.request.headers.add({",
-                      "    key: 'Authorization',",
-                      "    value: `Bearer ${token}`",
-                      "});"
-                    ],
-                    "type": "text/javascript"
-                  }
-                }
-              ],
-              "request": {
-                "method": "PATCH",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/users/{{targetUserId}}/permissions/reset",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["api", "{{apiVersion}}", "auth", "users", "{{targetUserId}}", "permissions", "reset"]
-                },
-                "description": "Reset permissions to default based on user's role"
-              },
-              "response": [],
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "exec": [
-                      "pm.test(\"Permissions reset to default\", function () {",
-                      "    pm.response.to.have.status(200);",
-                      "    const jsonData = pm.response.json();",
-                      "    pm.expect(jsonData.success).to.be.true;",
-                      "    console.log('✅ Permissions reset');",
-                      "    console.log('Reset to:', jsonData.data.resetTo);",
-                      "});"
-                    ],
-                    "type": "text/javascript"
-                  }
-                }
-              ]
-            },
-            {
-              "name": "6️⃣ Update User Role to Admin",
-              "event": [
-                {
-                  "listen": "prerequest",
-                  "script": {
-                    "exec": [
-                      "const token = pm.variables.get('superadminToken');",
-                      "pm.request.headers.add({",
-                      "    key: 'Authorization',",
-                      "    value: `Bearer ${token}`",
-                      "});"
-                    ],
-                    "type": "text/javascript"
-                  }
-                }
-              ],
-              "request": {
-                "method": "PATCH",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"role\": \"admin\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/api/{{apiVersion}}/auth/users/{{targetUserId}}",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["api", "{{apiVersion}}", "auth", "users", "{{targetUserId}}"]
-                },
-                "description": "Promote user to admin (superadmin only)"
-              },
-              "response": [],
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "exec": [
-                      "pm.test(\"User promoted to admin\", function () {",
-                      "    pm.response.to.have.status(200);",
-                      "    const jsonData = pm.response.json();",
-                      "    pm.expect(jsonData.success).to.be.true;",
-                      "    pm.expect(jsonData.data.user.role).to.equal('admin');",
-                      "    console.log('✅ User promoted to:', jsonData.data.user.role);",
-                      "});"
-                    ],
-                    "type": "text/javascript"
-                  }
-                }
-              ]
-            }
-          ]
+          "response": []
         }
       ]
     }
@@ -1398,8 +1813,7 @@
       "listen": "prerequest",
       "script": {
         "exec": [
-          "// Global pre-request script",
-          "console.log('🔧 Global pre-request script running');",
+          "console.log('Global pre-request script running');",
           "console.log(`Base URL: ${pm.variables.get('baseUrl')}`);",
           "console.log(`Environment: ${pm.environment.name || 'No environment'}`);"
         ],
@@ -1410,14 +1824,16 @@
       "listen": "test",
       "script": {
         "exec": [
-          "// Global test script",
-          "console.log(`✅ Request completed: ${pm.request.method} ${pm.request.url}`);",
-          "console.log(`⏱️  Response time: ${pm.response.responseTime}ms`);",
-          "console.log(`📊 Status: ${pm.response.code} ${pm.response.status}`);",
+          "console.log(`Request completed: ${pm.request.method} ${pm.request.url}`);",
+          "console.log(`Response time: ${pm.response.responseTime}ms`);",
+          "console.log(`Status: ${pm.response.code} ${pm.response.status}`);",
           "",
-          "// Add response time to environment if needed",
           "if (pm.response.responseTime > 1000) {",
-          "    console.warn('⚠️ Slow response detected');",
+          "    console.warn('Slow response detected');",
+          "}",
+          "",
+          "if (pm.response.code >= 400) {",
+          "    console.error(`Error response: ${pm.response.status}`);",
           "}"
         ],
         "type": "text/javascript"

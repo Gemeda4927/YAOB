@@ -144,53 +144,92 @@ const eventSchema = new mongoose.Schema(
     tags: [String],
 
     // =========================
-    // MEDIA
+    // MEDIA - CLOUDINARY
     // =========================
-    featuredImage: String,
-    gallery: [String],
+    featuredImage: {
+      url: String,
+      publicId: String,
+      width: Number,
+      height: Number,
+      format: String,
+    },
+
+    bannerImage: {
+      type: {
+        url: {
+          type: String,
+          default: 'https://via.placeholder.com/1200x400?text=Event+Banner',
+        },
+        publicId: { type: String, default: '' },
+        width: { type: Number, default: 1200 },
+        height: { type: Number, default: 400 },
+        format: { type: String, default: 'jpg' },
+      },
+      default: {},
+    },
+
+    gallery: [
+      {
+        url: String,
+        publicId: String,
+        width: Number,
+        height: Number,
+        format: String,
+        uploadedAt: { type: Date, default: Date.now },
+      },
+    ],
+
+    postEventVideo: {
+      url: String,
+      publicId: String,
+      thumbnail: String,
+      duration: Number,
+      format: String,
+      size: Number,
+      uploadedAt: Date,
+      title: String,
+      description: String,
+      metadata: {
+        width: Number,
+        height: Number,
+        bitrate: Number,
+        codec: String,
+      },
+    },
+
+    // =========================
+    // CLOUDINARY ASSETS
+    // =========================
+    cloudinaryAssets: [
+      {
+        publicId: String,
+        resourceType: { type: String, enum: ['image', 'video', 'raw'] },
+        url: String,
+        format: String,
+        bytes: Number,
+        uploadedAt: { type: Date, default: Date.now },
+      },
+    ],
 
     // =========================
     // SETTINGS
     // =========================
-    isFeatured: {
-      type: Boolean,
-      default: false,
-    },
-
-    requiresApproval: {
-      type: Boolean,
-      default: false,
-    },
-
+    isFeatured: { type: Boolean, default: false },
+    requiresApproval: { type: Boolean, default: false },
     registrationDeadline: Date,
-
     publishedAt: Date,
 
     // =========================
     // SOFT DELETE
     // =========================
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
-
-    isDeleted: {
-      type: Boolean,
-      default: false,
-    },
+    isActive: { type: Boolean, default: true },
+    isDeleted: { type: Boolean, default: false },
 
     // =========================
     // AUDIT
     // =========================
-    createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-    },
-
-    updatedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-    },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   },
   {
     timestamps: true,
@@ -199,11 +238,9 @@ const eventSchema = new mongoose.Schema(
   }
 );
 
-//
 // =========================
 // VIRTUALS
 // =========================
-//
 eventSchema.virtual('durationHours').get(function () {
   if (!this.startDate || !this.endDate) return 0;
   return (this.endDate - this.startDate) / (1000 * 60 * 60);
@@ -225,43 +262,61 @@ eventSchema.virtual('registrationOpen').get(function () {
   );
 });
 
-//
+eventSchema.virtual('canUploadPostEventVideo').get(function () {
+  const now = new Date();
+  return this.status === 'completed' || (this.endDate && now > this.endDate);
+});
+
 // =========================
 // INDEXES
 // =========================
-//
 eventSchema.index({ status: 1 });
 eventSchema.index({ organizer: 1 });
 eventSchema.index({ startDate: 1 });
 eventSchema.index({ locationType: 1 });
 
-//
 // =========================
-// MIDDLEWARE (FIXED)
+// MIDDLEWARE
 // =========================
-//
-
-// Auto set publishedAt
 eventSchema.pre('save', function () {
-  if (
-    this.isModified('status') &&
-    this.status === 'published' &&
-    !this.publishedAt
-  ) {
+  if (this.isModified('status') && this.status === 'published' && !this.publishedAt) {
     this.publishedAt = new Date();
   }
 });
 
-// Exclude soft-deleted docs
 eventSchema.pre(/^find/, function () {
   this.find({ isDeleted: { $ne: true } });
 });
 
-//
+// =========================
+// STATIC METHODS
+// =========================
+eventSchema.statics.cleanupCloudinaryAssets = async function (eventId) {
+  try {
+    const event = await this.findById(eventId);
+    if (!event) return;
+
+    const cloudinary = require('../utils/cloudinary');
+    const assetsToDelete = [];
+
+    if (event.featuredImage?.publicId) assetsToDelete.push(event.featuredImage.publicId);
+    if (event.bannerImage?.publicId) assetsToDelete.push(event.bannerImage.publicId);
+    if (event.postEventVideo?.publicId) assetsToDelete.push(event.postEventVideo.publicId);
+
+    event.gallery.forEach((img) => {
+      if (img.publicId) assetsToDelete.push(img.publicId);
+    });
+
+    if (assetsToDelete.length > 0) {
+      await cloudinary.deleteResources(assetsToDelete);
+    }
+  } catch (error) {
+    console.error('Error cleaning up Cloudinary assets:', error);
+  }
+};
+
 // =========================
 // MODEL
 // =========================
-//
 const Event = mongoose.model('Event', eventSchema);
-
 module.exports = Event;

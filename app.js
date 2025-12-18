@@ -9,6 +9,7 @@ const hpp = require('hpp')
 const morgan = require('morgan')
 
 const authRoutes = require('./routes/auth.routes')
+const eventRoutes = require('./routes/event.routes')
 
 const app = express()
 
@@ -50,7 +51,8 @@ app.get('/', (req, res) => {
     success: true,
     message: 'Express API Server',
     status: 'running',
-    apiBase: '/api/v1'
+    apiBase: '/api/v1',
+    modules: ['auth', 'events']
   })
 })
 
@@ -60,17 +62,23 @@ app.get('/health', (req, res) => {
     status: 'UP',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    modules: {
+      auth: 'active',
+      events: 'active'
+    }
   })
 })
 
 /* ===================== API v1 ===================== */
 app.use('/api/v1', apiLimiter)
 
+// API Documentation
 app.get('/api/v1', (req, res) => {
   res.json({
     success: true,
     version: 'v1',
+    timestamp: new Date().toISOString(),
     endpoints: {
       auth: {
         signup: 'POST /api/v1/auth/signup',
@@ -80,13 +88,41 @@ app.get('/api/v1', (req, res) => {
         changePassword: 'PATCH /api/v1/auth/change-password',
         forgotPassword: 'POST /api/v1/auth/forgot-password',
         resetPassword: 'PATCH /api/v1/auth/reset-password/:token',
-        logout: 'POST /api/v1/auth/logout'
+        logout: 'POST /api/v1/auth/logout',
+        // Admin routes
+        getAllUsers: 'GET /api/v1/auth/users',
+        getUserById: 'GET /api/v1/auth/users/:id',
+        updateUser: 'PATCH /api/v1/auth/users/:id',
+        deleteUser: 'DELETE /api/v1/auth/users/:id',
+        // Permission management
+        getUserPermissions: 'GET /api/v1/auth/users/:id/permissions',
+        assignPermissions: 'PATCH /api/v1/auth/users/:id/permissions/assign',
+        addPermissions: 'PATCH /api/v1/auth/users/:id/permissions/add',
+        removePermissions: 'PATCH /api/v1/auth/users/:id/permissions/remove',
+        resetPermissions: 'PATCH /api/v1/auth/users/:id/permissions/reset',
+        // Superadmin
+        superadminStats: 'GET /api/v1/auth/superadmin/stats'
+      },
+      events: {
+        // Public routes
+        getAllEvents: 'GET /api/v1/events',
+        getEventById: 'GET /api/v1/events/:id',
+        getUpcomingEvents: 'GET /api/v1/events/upcoming/events',
+        // Organizer routes
+        getMyEvents: 'GET /api/v1/events/my/events',
+        createEvent: 'POST /api/v1/events',
+        updateEvent: 'PATCH /api/v1/events/:id',
+        deleteEvent: 'DELETE /api/v1/events/:id',
+        // Admin routes
+        publishEvent: 'PATCH /api/v1/events/:id/publish'
       }
     }
   })
 })
 
+// Mount routes
 app.use('/api/v1/auth', authRoutes)
+app.use('/api/v1/events', eventRoutes)
 
 /* ===================== 404 API ===================== */
 app.use('/api/*', (req, res) => {
@@ -94,7 +130,8 @@ app.use('/api/*', (req, res) => {
     success: false,
     error: {
       code: 'ENDPOINT_NOT_FOUND',
-      message: `Cannot ${req.method} ${req.originalUrl}`
+      message: `Cannot ${req.method} ${req.originalUrl}`,
+      availableModules: ['/api/v1/auth', '/api/v1/events']
     }
   })
 })
@@ -105,23 +142,25 @@ app.all('*', (req, res) => {
     success: false,
     error: {
       code: 'NOT_FOUND',
-      message: `Cannot ${req.method} ${req.originalUrl}`
+      message: `Cannot ${req.method} ${req.originalUrl}`,
+      apiBase: '/api/v1'
     }
   })
 })
 
 /* ===================== ERROR HANDLER ===================== */
 app.use((err, req, res, next) => {
-  console.error(err)
+  console.error('Server Error:', err)
 
   res.status(err.statusCode || 500).json({
     success: false,
     error: {
-      message:
-        process.env.NODE_ENV === 'production'
-          ? 'Something went wrong'
-          : err.message
-    }
+      message: process.env.NODE_ENV === 'production' 
+        ? 'Something went wrong' 
+        : err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    },
+    timestamp: new Date().toISOString()
   })
 })
 
